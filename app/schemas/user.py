@@ -71,3 +71,7 @@ class PhoneLoginRequest(BaseModel):
 class PasswordLoginRequest(BaseModel):
     phone: str = Field(..., description="手机号", min_length=11, max_length=11)
     password: str = Field(..., description="密码", min_length=6)
+
+class CaptchaData(BaseModel):
+    data: str = Field(..., description="图片base64编码(data:image/png;base64,...)")
+    captcha_id: str = Field(..., alias="captchaId", description="验证码ID")

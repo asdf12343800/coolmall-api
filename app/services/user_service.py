@@ -1,10 +1,13 @@
 import random
 import time
+import uuid
+import io
+import base64
 from datetime import datetime, timezone
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from app.models.user import User
-from app.schemas.user import UserCreate, UserUpdate, SmsCodeRequest, RegisterRequest, RegisterTokenData, RefreshTokenRequest, PhoneLoginRequest, PasswordLoginRequest
+from app.schemas.user import UserCreate, UserUpdate, SmsCodeRequest, RegisterRequest, RegisterTokenData, RefreshTokenRequest, PhoneLoginRequest, PasswordLoginRequest, CaptchaData
 from app.core.config import settings
 from passlib.context import CryptContext
 from jose import jwt
@@ -232,3 +235,39 @@ class UserService:
             refresh_token=refresh_token,
             refresh_expire=refresh_expire,
         )
+    
+    def generate_captcha(self, captcha_type: str, width: int, height: int) -> CaptchaData:
+        """生成图片验证码，返回图片base64 + captchaId"""
+        captcha_id = str(uuid.uuid4())
+        try:
+            from captcha.image import ImageCaptcha
+            chars = "0123456789"
+            code = "".join(random.choices(chars, k=4))
+            image_captcha = ImageCaptcha(width=width, height=height)
+            data_bytes = image_captcha.generate(code)
+            image_bytes = data_bytes.getvalue()
+        except Exception:
+            # fallback: 使用 Pillow 生成一张简单的占位图
+            try:
+                from PIL import Image, ImageDraw, ImageFont
+                chars = "0123456789"
+                code = "".join(random.choices(chars, k=4))
+                img = Image.new("RGB", (width, height), color=(240, 240, 240))
+                draw = ImageDraw.Draw(img)
+                try:
+                    font = ImageFont.truetype("arial.ttf", int(height * 0.7))
+                except Exception:
+                    font = ImageFont.load_default()
+                draw.text((width * 0.15, height * 0.15), code, fill=(50, 50, 50), font=font)
+                buf = io.BytesIO()
+                img.save(buf, format="PNG")
+                image_bytes = buf.getvalue()
+            except Exception:
+                # 二次 fallback: 返回一个最小的 1x1 PNG
+                image_bytes = base64.b64decode(
+                    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+P+/HgAFrwJhFpD1PgAAAABJRU5ErkJggg=="
+                )
+        base64_data = base64.b64encode(image_bytes).decode("utf-8")
+        data_uri = "data:image/png;base64," + base64_data
+        # TODO: 将 captcha_id -> code 存入缓存，用于后续 smsCode 接口校验
+        return CaptchaData(data=data_uri, captcha_id=captcha_id)

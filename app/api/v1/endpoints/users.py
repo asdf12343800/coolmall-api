@@ -3,9 +3,22 @@ from fastapi import APIRouter, Depends, HTTPException, status, Header
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.services.user_service import UserService
-from app.schemas.user import UserCreate, UserResponse, UserUpdate, SmsCodeRequest, ApiResponse, RegisterRequest, RegisterTokenData, RefreshTokenRequest, PhoneLoginRequest, PasswordLoginRequest
+from app.schemas.user import UserCreate, UserResponse, UserUpdate, SmsCodeRequest, ApiResponse, RegisterRequest, RegisterTokenData, RefreshTokenRequest, PhoneLoginRequest, PasswordLoginRequest, CaptchaData
 
 router = APIRouter()
+
+@router.get("/login/captcha", response_model=ApiResponse[CaptchaData])
+def get_captcha(
+    type: str,
+    width: int,
+    height: int,
+    authorization: str = Header(None),
+    db: Session = Depends(get_db)
+):
+    """获取图片验证码"""
+    service = UserService(db)
+    captcha_data = service.generate_captcha(type, width, height)
+    return ApiResponse[CaptchaData](data=captcha_data)
 
 @router.post("/login/smsCode", response_model=ApiResponse[str])
 def send_sms_code(
