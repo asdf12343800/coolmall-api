@@ -102,3 +102,7 @@ class PersonInfo(BaseModel):
     login_type: str = Field(default="0", alias="loginType", description="登录类型")
     create_time: str = Field(..., alias="createTime", description="创建时间")
     update_time: str = Field(..., alias="updateTime", description="更新时间")
+
+class BindQQRequest(BaseModel):
+    access_token: str = Field(..., alias="accessToken", description="QQ accessToken")
+    open_id: str = Field(..., alias="openId", description="QQ openId")

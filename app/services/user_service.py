@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from app.models.user import User
-from app.schemas.user import UserCreate, UserUpdate, SmsCodeRequest, RegisterRequest, RegisterTokenData, RefreshTokenRequest, PhoneLoginRequest, PasswordLoginRequest, CaptchaData, UpdatePersonRequest, UpdatePasswordRequest, BindPhoneRequest, PersonInfo
+from app.schemas.user import UserCreate, UserUpdate, SmsCodeRequest, RegisterRequest, RegisterTokenData, RefreshTokenRequest, PhoneLoginRequest, PasswordLoginRequest, CaptchaData, UpdatePersonRequest, UpdatePasswordRequest, BindPhoneRequest, PersonInfo, BindQQRequest
 from app.core.config import settings
 from passlib.context import CryptContext
 from jose import jwt
@@ -425,3 +425,24 @@ class UserService:
             create_time=_fmt(user.created_at),
             update_time=_fmt(user.updated_at) if user.updated_at else _fmt(user.created_at),
         )
+    
+    def bind_qq(self, req: BindQQRequest, authorization: str) -> dict:
+        """绑定QQ账号"""
+        user_id = self._get_user_id_from_token(authorization)
+        user = self.get_user(user_id)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="用户不存在"
+            )
+        # TODO: 调用QQ互联API校验 accessToken 与 openId 的有效性
+        # 校验 openId 是否已被其他用户绑定
+        existing = self.db.query(User).filter(User.qq_openid == req.open_id).first()
+        if existing and existing.id != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="该QQ账号已被绑定"
+            )
+        user.qq_openid = req.open_id
+        self.db.commit()
+        return {}

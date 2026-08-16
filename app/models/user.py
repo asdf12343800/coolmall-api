@@ -15,6 +15,7 @@ class User(Base):
     gender = Column(Integer, default=0)
     login_type = Column(String, default="0")
     unionid = Column(String, nullable=True)
+    qq_openid = Column(String, unique=True, index=True, nullable=True)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

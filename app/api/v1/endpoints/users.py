@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Header
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.services.user_service import UserService
-from app.schemas.user import UserCreate, UserResponse, UserUpdate, SmsCodeRequest, ApiResponse, RegisterRequest, RegisterTokenData, RefreshTokenRequest, PhoneLoginRequest, PasswordLoginRequest, CaptchaData, UpdatePersonRequest, UpdatePasswordRequest, BindPhoneRequest, PersonInfo
+from app.schemas.user import UserCreate, UserResponse, UserUpdate, SmsCodeRequest, ApiResponse, RegisterRequest, RegisterTokenData, RefreshTokenRequest, PhoneLoginRequest, PasswordLoginRequest, CaptchaData, UpdatePersonRequest, UpdatePasswordRequest, BindPhoneRequest, PersonInfo, BindQQRequest
 
 router = APIRouter()
 
@@ -127,6 +127,17 @@ def get_person_info(
     service = UserService(db)
     person_info = service.get_person_info(authorization)
     return ApiResponse[PersonInfo](data=person_info)
+
+@router.post("/info/bindQQ", response_model=ApiResponse[dict])
+def bind_qq(
+    req: BindQQRequest,
+    authorization: str = Header(...),
+    db: Session = Depends(get_db)
+):
+    """绑定QQ账号"""
+    service = UserService(db)
+    result = service.bind_qq(req, authorization)
+    return ApiResponse[dict](data=result)
 
 @router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def create_user(user: UserCreate, db: Session = Depends(get_db)):
