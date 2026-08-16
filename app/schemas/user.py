@@ -75,3 +75,9 @@ class PasswordLoginRequest(BaseModel):
 class CaptchaData(BaseModel):
     data: str = Field(..., description="图片base64编码(data:image/png;base64,...)")
     captcha_id: str = Field(..., alias="captchaId", description="验证码ID")
+
+class UpdatePersonRequest(BaseModel):
+    username: Optional[str] = Field(default=None, description="用户名/昵称")
+    avatar: Optional[str] = Field(default=None, description="头像URL")
+    email: Optional[EmailStr] = Field(default=None, description="邮箱")
+    full_name: Optional[str] = Field(default=None, description="真实姓名")

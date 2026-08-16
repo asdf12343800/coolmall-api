@@ -11,6 +11,7 @@ class User(Base):
     phone = Column(String, unique=True, index=True, nullable=True)
     hashed_password = Column(String, nullable=False)
     full_name = Column(String)
+    avatar = Column(String)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from app.models.user import User
-from app.schemas.user import UserCreate, UserUpdate, SmsCodeRequest, RegisterRequest, RegisterTokenData, RefreshTokenRequest, PhoneLoginRequest, PasswordLoginRequest, CaptchaData
+from app.schemas.user import UserCreate, UserUpdate, SmsCodeRequest, RegisterRequest, RegisterTokenData, RefreshTokenRequest, PhoneLoginRequest, PasswordLoginRequest, CaptchaData, UpdatePersonRequest
 from app.core.config import settings
 from passlib.context import CryptContext
 from jose import jwt
@@ -271,3 +271,58 @@ class UserService:
         data_uri = "data:image/png;base64," + base64_data
         # TODO: 将 captcha_id -> code 存入缓存，用于后续 smsCode 接口校验
         return CaptchaData(data=data_uri, captcha_id=captcha_id)
+    
+    def _get_user_id_from_token(self, authorization: str) -> int:
+        """从 Authorization header 解析 access token，返回 userId"""
+        if not authorization:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="缺少Authorization头"
+            )
+        token = authorization.replace("Bearer ", "").strip()
+        payload = self._decode_token(token)
+        # 不能用 refresh token 来操作个人资料
+        if payload.get("isRefresh"):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="请使用access token"
+            )
+        user_id = payload.get("userId")
+        if not user_id:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="token缺少userId信息"
+            )
+        return user_id
+    
+    def update_person(self, req: UpdatePersonRequest, authorization: str) -> dict:
+        """更新当前登录用户的个人资料"""
+        user_id = self._get_user_id_from_token(authorization)
+        user = self.get_user(user_id)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="用户不存在"
+            )
+        update_data = req.model_dump(exclude_unset=True)
+        # 校验用户名唯一性
+        if "username" in update_data and update_data["username"]:
+            existing = self.get_user_by_username(update_data["username"])
+            if existing and existing.id != user_id:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="该用户名已被使用"
+                )
+        # 校验邮箱唯一性
+        if "email" in update_data and update_data["email"]:
+            existing = self.get_user_by_email(update_data["email"])
+            if existing and existing.id != user_id:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="该邮箱已被使用"
+                )
+        for field, value in update_data.items():
+            setattr(user, field, value)
+        self.db.commit()
+        self.db.refresh(user)
+        return {}
