@@ -1,6 +1,7 @@
+import random
 from sqlalchemy.orm import Session
 from app.models.user import User
-from app.schemas.user import UserCreate, UserUpdate
+from app.schemas.user import UserCreate, UserUpdate, SmsCodeRequest
 from passlib.context import CryptContext
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -66,3 +67,12 @@ class UserService:
         self.db.delete(user)
         self.db.commit()
         return True
+    
+    def send_sms_code(self, req: SmsCodeRequest) -> str:
+        """发送短信验证码，返回生成的4位验证码"""
+        # TODO: 校验图片验证码 captcha_id + code（需要结合 Redis 或缓存实现）
+        # TODO: 调用实际短信服务商SDK发送短信到 req.phone
+        # 生成4位随机数字验证码
+        sms_code = f"{random.randint(0, 9999):04d}"
+        # TODO: 将手机号+验证码存入缓存（如Redis），设置有效期，用于后续登录校验
+        return sms_code

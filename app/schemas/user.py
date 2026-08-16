@@ -1,6 +1,13 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 from datetime import datetime
-from typing import Optional
+from typing import Optional, TypeVar, Generic
+
+T = TypeVar("T")
+
+class ApiResponse(BaseModel, Generic[T]):
+    code: int = Field(default=1000, description="响应码，1000表示成功")
+    data: Optional[T] = Field(default=None, description="响应数据")
+    message: str = Field(default="success", description="响应消息")
 
 class UserBase(BaseModel):
     email: EmailStr
@@ -36,3 +43,8 @@ class Token(BaseModel):
 class TokenPayload(BaseModel):
     sub: Optional[str] = None
     exp: Optional[int] = None
+
+class SmsCodeRequest(BaseModel):
+    phone: str = Field(..., description="手机号", min_length=11, max_length=11)
+    captcha_id: str = Field(..., alias="captchaId", description="图片验证码ID")
+    code: str = Field(..., description="图片验证码", min_length=4, max_length=6)
