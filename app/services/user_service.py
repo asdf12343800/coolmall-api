@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from app.models.user import User
-from app.schemas.user import UserCreate, UserUpdate, SmsCodeRequest, RegisterRequest, RegisterTokenData, RefreshTokenRequest, PhoneLoginRequest
+from app.schemas.user import UserCreate, UserUpdate, SmsCodeRequest, RegisterRequest, RegisterTokenData, RefreshTokenRequest, PhoneLoginRequest, PasswordLoginRequest
 from app.core.config import settings
 from passlib.context import CryptContext
 from jose import jwt
@@ -185,6 +185,37 @@ class UserService:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="该手机号尚未注册"
+            )
+        # 校验用户状态
+        if not user.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="账号已被禁用"
+            )
+        # 生成 token
+        access_token, expire = self._create_token(user.id, is_refresh=False)
+        refresh_token, refresh_expire = self._create_token(user.id, is_refresh=True)
+        return RegisterTokenData(
+            token=access_token,
+            expire=expire,
+            refresh_token=refresh_token,
+            refresh_expire=refresh_expire,
+        )
+    
+    def login_by_password(self, req: PasswordLoginRequest) -> RegisterTokenData:
+        """手机号 + 密码登录，返回token信息"""
+        # 校验手机号是否已注册
+        user = self.get_user_by_phone(req.phone)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="手机号或密码错误"
+            )
+        # 校验密码
+        if not self.verify_password(req.password, user.hashed_password):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="手机号或密码错误"
             )
         # 校验用户状态
         if not user.is_active:

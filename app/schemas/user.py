@@ -67,3 +67,7 @@ class RefreshTokenRequest(BaseModel):
 class PhoneLoginRequest(BaseModel):
     phone: str = Field(..., description="手机号", min_length=11, max_length=11)
     sms_code: str = Field(..., alias="smsCode", description="短信验证码", min_length=4, max_length=6)
+
+class PasswordLoginRequest(BaseModel):
+    phone: str = Field(..., description="手机号", min_length=11, max_length=11)
+    password: str = Field(..., description="密码", min_length=6)
