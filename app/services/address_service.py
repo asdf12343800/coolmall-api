@@ -1,8 +1,17 @@
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from app.models.address import Address
-from app.schemas.address import AddressUpdateRequest
+from app.schemas.address import AddressUpdateRequest, AddressPageRequest, AddressPageData, AddressItem, Pagination
 from app.services.user_service import UserService
+
+
+def _fmt(dt):
+    """格式化日期时间为字符串"""
+    if not dt:
+        return ""
+    if dt.tzinfo is not None:
+        dt = dt.replace(tzinfo=None)
+    return dt.strftime("%Y-%m-%d %H:%M:%S")
 
 
 class AddressService:
@@ -40,3 +49,42 @@ class AddressService:
         address.is_default = req.is_default
         self.db.commit()
         return {}
+
+    def page_addresses(self, req: AddressPageRequest, authorization: str) -> AddressPageData:
+        """分页查询当前用户的收货地址"""
+        user_service = UserService(self.db)
+        user_id = user_service._get_user_id_from_token(authorization)
+        query = self.db.query(Address).filter(Address.user_id == user_id)
+        # 排序
+        order_map = {
+            "updateTime": Address.updated_at,
+            "createTime": Address.created_at,
+            "id": Address.id,
+        }
+        sort_col = order_map.get(req.order, Address.updated_at)
+        if req.sort == "asc":
+            query = query.order_by(sort_col.asc())
+        else:
+            query = query.order_by(sort_col.desc())
+        # 分页
+        total = query.count()
+        items = query.offset((req.page - 1) * req.size).limit(req.size).all()
+        return AddressPageData(
+            list=[
+                AddressItem(
+                    id=a.id,
+                    create_time=_fmt(a.created_at),
+                    update_time=_fmt(a.updated_at) if a.updated_at else _fmt(a.created_at),
+                    user_id=a.user_id,
+                    contact=a.contact,
+                    phone=a.phone,
+                    province=a.province,
+                    city=a.city,
+                    district=a.district,
+                    address=a.address,
+                    is_default=a.is_default,
+                )
+                for a in items
+            ],
+            pagination=Pagination(total=total, size=req.size, page=req.page),
+        )
