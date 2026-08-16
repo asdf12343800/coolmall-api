@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Header
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.services.user_service import UserService
-from app.schemas.user import UserCreate, UserResponse, UserUpdate, SmsCodeRequest, ApiResponse, RegisterRequest, RegisterTokenData, RefreshTokenRequest, PhoneLoginRequest, PasswordLoginRequest, CaptchaData, UpdatePersonRequest, UpdatePasswordRequest
+from app.schemas.user import UserCreate, UserResponse, UserUpdate, SmsCodeRequest, ApiResponse, RegisterRequest, RegisterTokenData, RefreshTokenRequest, PhoneLoginRequest, PasswordLoginRequest, CaptchaData, UpdatePersonRequest, UpdatePasswordRequest, BindPhoneRequest
 
 router = APIRouter()
 

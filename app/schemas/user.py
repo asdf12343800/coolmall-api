@@ -86,3 +86,7 @@ class UpdatePasswordRequest(BaseModel):
     old_password: str = Field(..., alias="oldPassword", description="原密码", min_length=6)
     new_password: str = Field(..., alias="newPassword", description="新密码", min_length=6)
     confirm_password: str = Field(..., alias="confirmPassword", description="确认新密码", min_length=6)
+
+class BindPhoneRequest(BaseModel):
+    phone: str = Field(..., description="待绑定的手机号", min_length=11, max_length=11)
+    sms_code: str = Field(..., alias="smsCode", description="短信验证码", min_length=4, max_length=6)

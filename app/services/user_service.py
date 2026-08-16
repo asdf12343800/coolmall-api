@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from app.models.user import User
-from app.schemas.user import UserCreate, UserUpdate, SmsCodeRequest, RegisterRequest, RegisterTokenData, RefreshTokenRequest, PhoneLoginRequest, PasswordLoginRequest, CaptchaData, UpdatePersonRequest, UpdatePasswordRequest
+from app.schemas.user import UserCreate, UserUpdate, SmsCodeRequest, RegisterRequest, RegisterTokenData, RefreshTokenRequest, PhoneLoginRequest, PasswordLoginRequest, CaptchaData, UpdatePersonRequest, UpdatePasswordRequest, BindPhoneRequest
 from app.core.config import settings
 from passlib.context import CryptContext
 from jose import jwt
@@ -375,4 +375,25 @@ class UserService:
         user.is_active = False
         self.db.commit()
         # TODO: 可选：将当前 access token 加入黑名单（需 Redis），使其立即失效
+        return {}
+    
+    def bind_phone(self, req: BindPhoneRequest, authorization: str) -> dict:
+        """绑定手机号"""
+        user_id = self._get_user_id_from_token(authorization)
+        user = self.get_user(user_id)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="用户不存在"
+            )
+        # TODO: 校验短信验证码（从缓存中取手机号对应的验证码进行比对）
+        # 校验新手机号是否已被其他用户绑定
+        existing = self.get_user_by_phone(req.phone)
+        if existing and existing.id != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="该手机号已被绑定"
+            )
+        user.phone = req.phone
+        self.db.commit()
         return {}
