@@ -357,3 +357,22 @@ class UserService:
         user.hashed_password = self.get_password_hash(req.new_password)
         self.db.commit()
         return {}
+    
+    def logoff(self, authorization: str) -> dict:
+        """注销当前登录用户账号（停用）"""
+        user_id = self._get_user_id_from_token(authorization)
+        user = self.get_user(user_id)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="用户不存在"
+            )
+        if not user.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="账号已注销"
+            )
+        user.is_active = False
+        self.db.commit()
+        # TODO: 可选：将当前 access token 加入黑名单（需 Redis），使其立即失效
+        return {}

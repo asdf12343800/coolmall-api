@@ -97,6 +97,16 @@ def update_password(
     result = service.update_password(req, authorization)
     return ApiResponse[dict](data=result)
 
+@router.post("/info/logoff", response_model=ApiResponse[dict])
+def logoff(
+    authorization: str = Header(...),
+    db: Session = Depends(get_db)
+):
+    """注销当前登录用户账号"""
+    service = UserService(db)
+    result = service.logoff(authorization)
+    return ApiResponse[dict](data=result)
+
 @router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def create_user(user: UserCreate, db: Session = Depends(get_db)):
     """创建新用户"""
