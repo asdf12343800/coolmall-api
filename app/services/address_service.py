@@ -88,3 +88,30 @@ class AddressService:
             ],
             pagination=Pagination(total=total, size=req.size, page=req.page),
         )
+
+    def list_addresses(self, authorization: str) -> list[AddressItem]:
+        """查询当前用户的所有收货地址"""
+        user_service = UserService(self.db)
+        user_id = user_service._get_user_id_from_token(authorization)
+        items = (
+            self.db.query(Address)
+            .filter(Address.user_id == user_id)
+            .order_by(Address.updated_at.desc())
+            .all()
+        )
+        return [
+            AddressItem(
+                id=a.id,
+                create_time=_fmt(a.created_at),
+                update_time=_fmt(a.updated_at) if a.updated_at else _fmt(a.created_at),
+                user_id=a.user_id,
+                contact=a.contact,
+                phone=a.phone,
+                province=a.province,
+                city=a.city,
+                district=a.district,
+                address=a.address,
+                is_default=a.is_default,
+            )
+            for a in items
+        ]

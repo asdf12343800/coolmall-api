@@ -1,8 +1,9 @@
+from typing import List
 from fastapi import APIRouter, Depends, Header
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.services.address_service import AddressService
-from app.schemas.address import AddressUpdateRequest, AddressPageRequest, AddressPageData
+from app.schemas.address import AddressUpdateRequest, AddressPageRequest, AddressPageData, AddressItem
 from app.schemas.user import ApiResponse
 
 router = APIRouter()
@@ -30,3 +31,14 @@ def page_addresses(
     service = AddressService(db)
     data = service.page_addresses(req, authorization)
     return ApiResponse[AddressPageData](data=data)
+
+
+@router.post("/list", response_model=ApiResponse[List[AddressItem]])
+def list_addresses(
+    authorization: str = Header(...),
+    db: Session = Depends(get_db)
+):
+    """查询当前用户的所有收货地址"""
+    service = AddressService(db)
+    data = service.list_addresses(authorization)
+    return ApiResponse[List[AddressItem]](data=data)
