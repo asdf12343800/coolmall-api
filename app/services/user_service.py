@@ -1,8 +1,13 @@
 import random
+import time
+from datetime import datetime, timezone
+from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from app.models.user import User
-from app.schemas.user import UserCreate, UserUpdate, SmsCodeRequest
+from app.schemas.user import UserCreate, UserUpdate, SmsCodeRequest, RegisterRequest, RegisterTokenData
+from app.core.config import settings
 from passlib.context import CryptContext
+from jose import jwt
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -37,6 +42,9 @@ class UserService:
     
     def get_user_by_username(self, username: str) -> User | None:
         return self.db.query(User).filter(User.username == username).first()
+    
+    def get_user_by_phone(self, phone: str) -> User | None:
+        return self.db.query(User).filter(User.phone == phone).first()
     
     def get_users(self, skip: int = 0, limit: int = 100) -> list[User]:
         return self.db.query(User).offset(skip).limit(limit).all()
@@ -76,3 +84,51 @@ class UserService:
         sms_code = f"{random.randint(0, 9999):04d}"
         # TODO: 将手机号+验证码存入缓存（如Redis），设置有效期，用于后续登录校验
         return sms_code
+    
+    def _create_token(self, user_id: int, is_refresh: bool = False) -> tuple[str, int]:
+        """生成JWT token，返回(token, 过期秒数)"""
+        now = int(time.time())
+        expire_seconds = settings.REFRESH_TOKEN_EXPIRE if is_refresh else settings.ACCESS_TOKEN_EXPIRE
+        payload = {
+            "exp": now + expire_seconds,
+            "created": now,
+            "userType": settings.USER_TYPE,
+            "userId": user_id,
+            "isRefresh": is_refresh,
+        }
+        token = jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+        return token, expire_seconds
+    
+    def register(self, req: RegisterRequest) -> RegisterTokenData:
+        """用户注册，返回token信息"""
+        # TODO: 校验短信验证码（从缓存中取手机号对应的验证码进行比对）
+        # 校验两次密码一致
+        if req.password != req.confirm_password:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="密码与确认密码不一致"
+            )
+        # 校验手机号是否已注册
+        if self.get_user_by_phone(req.phone):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="该手机号已注册"
+            )
+        # 创建用户
+        hashed_password = self.get_password_hash(req.password)
+        user = User(
+            phone=req.phone,
+            hashed_password=hashed_password,
+        )
+        self.db.add(user)
+        self.db.commit()
+        self.db.refresh(user)
+        # 生成 token
+        access_token, expire = self._create_token(user.id, is_refresh=False)
+        refresh_token, refresh_expire = self._create_token(user.id, is_refresh=True)
+        return RegisterTokenData(
+            token=access_token,
+            expire=expire,
+            refresh_token=refresh_token,
+            refresh_expire=refresh_expire,
+        )

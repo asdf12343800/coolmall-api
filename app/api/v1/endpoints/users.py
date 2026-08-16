@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Header
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.services.user_service import UserService
-from app.schemas.user import UserCreate, UserResponse, UserUpdate, SmsCodeRequest, ApiResponse
+from app.schemas.user import UserCreate, UserResponse, UserUpdate, SmsCodeRequest, ApiResponse, RegisterRequest, RegisterTokenData
 
 router = APIRouter()
 
@@ -17,6 +17,17 @@ def send_sms_code(
     service = UserService(db)
     sms_code = service.send_sms_code(req)
     return ApiResponse[str](data=sms_code)
+
+@router.post("/login/register", response_model=ApiResponse[RegisterTokenData])
+def register(
+    req: RegisterRequest,
+    authorization: str = Header(None),
+    db: Session = Depends(get_db)
+):
+    """用户注册"""
+    service = UserService(db)
+    token_data = service.register(req)
+    return ApiResponse[RegisterTokenData](data=token_data)
 
 @router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def create_user(user: UserCreate, db: Session = Depends(get_db)):

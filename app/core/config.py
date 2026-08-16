@@ -24,6 +24,11 @@ class Settings(BaseSettings):
     SECRET_KEY: str = os.getenv("SECRET_KEY", "your-secret-key-here")
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+
+    # 注册/登录 token 过期时间（秒）
+    ACCESS_TOKEN_EXPIRE: int = 2592000  # 30天
+    REFRESH_TOKEN_EXPIRE: int = 7776000  # 90天
+    USER_TYPE: str = "APP"
     
     class Config:
         case_sensitive = True

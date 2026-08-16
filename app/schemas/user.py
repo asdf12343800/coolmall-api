@@ -48,3 +48,15 @@ class SmsCodeRequest(BaseModel):
     phone: str = Field(..., description="手机号", min_length=11, max_length=11)
     captcha_id: str = Field(..., alias="captchaId", description="图片验证码ID")
     code: str = Field(..., description="图片验证码", min_length=4, max_length=6)
+
+class RegisterRequest(BaseModel):
+    phone: str = Field(..., description="手机号", min_length=11, max_length=11)
+    sms_code: str = Field(..., alias="smsCode", description="短信验证码", min_length=4, max_length=6)
+    password: str = Field(..., description="密码", min_length=6)
+    confirm_password: str = Field(..., alias="confirmPassword", description="确认密码", min_length=6)
+
+class RegisterTokenData(BaseModel):
+    token: str = Field(..., description="访问令牌")
+    expire: int = Field(..., description="访问令牌过期时间(秒)")
+    refresh_token: str = Field(..., alias="refreshToken", description="刷新令牌")
+    refresh_expire: int = Field(..., alias="refreshExpire", description="刷新令牌过期时间(秒)")
