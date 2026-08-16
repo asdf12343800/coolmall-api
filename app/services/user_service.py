@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from app.models.user import User
-from app.schemas.user import UserCreate, UserUpdate, SmsCodeRequest, RegisterRequest, RegisterTokenData
+from app.schemas.user import UserCreate, UserUpdate, SmsCodeRequest, RegisterRequest, RegisterTokenData, RefreshTokenRequest
 from app.core.config import settings
 from passlib.context import CryptContext
 from jose import jwt
@@ -130,5 +130,48 @@ class UserService:
             token=access_token,
             expire=expire,
             refresh_token=refresh_token,
+            refresh_expire=refresh_expire,
+        )
+    
+    def _decode_token(self, token: str) -> dict:
+        """解码JWT token并校验，返回payload"""
+        try:
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        except jwt.JWTError:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="token无效或已过期"
+            )
+        return payload
+    
+    def refresh_token(self, req: RefreshTokenRequest) -> RegisterTokenData:
+        """刷新访问令牌，返回新的token信息（refresh token保持不变）"""
+        payload = self._decode_token(req.refresh_token)
+        # 校验必须是 refresh token
+        if not payload.get("isRefresh"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="传入的token不是refresh token"
+            )
+        user_id = payload.get("userId")
+        if not user_id:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="token缺少userId信息"
+            )
+        # 校验用户存在
+        user = self.get_user(user_id)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="用户不存在"
+            )
+        # 生成新的 access token；refresh token 保持原值继续使用
+        access_token, expire = self._create_token(user_id, is_refresh=False)
+        refresh_expire = settings.REFRESH_TOKEN_EXPIRE
+        return RegisterTokenData(
+            token=access_token,
+            expire=expire,
+            refresh_token=req.refresh_token,
             refresh_expire=refresh_expire,
         )

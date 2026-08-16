@@ -60,3 +60,6 @@ class RegisterTokenData(BaseModel):
     expire: int = Field(..., description="访问令牌过期时间(秒)")
     refresh_token: str = Field(..., alias="refreshToken", description="刷新令牌")
     refresh_expire: int = Field(..., alias="refreshExpire", description="刷新令牌过期时间(秒)")
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str = Field(..., alias="refreshToken", description="刷新令牌")
