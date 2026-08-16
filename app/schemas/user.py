@@ -63,3 +63,7 @@ class RegisterTokenData(BaseModel):
 
 class RefreshTokenRequest(BaseModel):
     refresh_token: str = Field(..., alias="refreshToken", description="刷新令牌")
+
+class PhoneLoginRequest(BaseModel):
+    phone: str = Field(..., description="手机号", min_length=11, max_length=11)
+    sms_code: str = Field(..., alias="smsCode", description="短信验证码", min_length=4, max_length=6)

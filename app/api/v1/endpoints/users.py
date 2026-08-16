@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Header
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.services.user_service import UserService
-from app.schemas.user import UserCreate, UserResponse, UserUpdate, SmsCodeRequest, ApiResponse, RegisterRequest, RegisterTokenData, RefreshTokenRequest
+from app.schemas.user import UserCreate, UserResponse, UserUpdate, SmsCodeRequest, ApiResponse, RegisterRequest, RegisterTokenData, RefreshTokenRequest, PhoneLoginRequest
 
 router = APIRouter()
 
@@ -38,6 +38,17 @@ def refresh_token(
     """刷新访问令牌"""
     service = UserService(db)
     token_data = service.refresh_token(req)
+    return ApiResponse[RegisterTokenData](data=token_data)
+
+@router.post("/login/phone", response_model=ApiResponse[RegisterTokenData])
+def login_by_phone(
+    req: PhoneLoginRequest,
+    authorization: str = Header(None),
+    db: Session = Depends(get_db)
+):
+    """手机号 + 短信验证码登录"""
+    service = UserService(db)
+    token_data = service.login_by_phone(req)
     return ApiResponse[RegisterTokenData](data=token_data)
 
 @router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
