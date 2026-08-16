@@ -81,3 +81,8 @@ class UpdatePersonRequest(BaseModel):
     avatar: Optional[str] = Field(default=None, description="头像URL")
     email: Optional[EmailStr] = Field(default=None, description="邮箱")
     full_name: Optional[str] = Field(default=None, description="真实姓名")
+
+class UpdatePasswordRequest(BaseModel):
+    old_password: str = Field(..., alias="oldPassword", description="原密码", min_length=6)
+    new_password: str = Field(..., alias="newPassword", description="新密码", min_length=6)
+    confirm_password: str = Field(..., alias="confirmPassword", description="确认新密码", min_length=6)

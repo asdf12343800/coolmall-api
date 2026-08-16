@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from app.models.user import User
-from app.schemas.user import UserCreate, UserUpdate, SmsCodeRequest, RegisterRequest, RegisterTokenData, RefreshTokenRequest, PhoneLoginRequest, PasswordLoginRequest, CaptchaData, UpdatePersonRequest
+from app.schemas.user import UserCreate, UserUpdate, SmsCodeRequest, RegisterRequest, RegisterTokenData, RefreshTokenRequest, PhoneLoginRequest, PasswordLoginRequest, CaptchaData, UpdatePersonRequest, UpdatePasswordRequest
 from app.core.config import settings
 from passlib.context import CryptContext
 from jose import jwt
@@ -325,4 +325,35 @@ class UserService:
             setattr(user, field, value)
         self.db.commit()
         self.db.refresh(user)
+        return {}
+    
+    def update_password(self, req: UpdatePasswordRequest, authorization: str) -> dict:
+        """更新当前登录用户的密码"""
+        user_id = self._get_user_id_from_token(authorization)
+        user = self.get_user(user_id)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="用户不存在"
+            )
+        # 校验原密码
+        if not self.verify_password(req.old_password, user.hashed_password):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="原密码错误"
+            )
+        # 校验新密码与确认密码一致
+        if req.new_password != req.confirm_password:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="新密码与确认密码不一致"
+            )
+        # 新密码不能与原密码相同
+        if self.verify_password(req.new_password, user.hashed_password):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="新密码不能与原密码相同"
+            )
+        user.hashed_password = self.get_password_hash(req.new_password)
+        self.db.commit()
         return {}

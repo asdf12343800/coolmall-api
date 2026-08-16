@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Header
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.services.user_service import UserService
-from app.schemas.user import UserCreate, UserResponse, UserUpdate, SmsCodeRequest, ApiResponse, RegisterRequest, RegisterTokenData, RefreshTokenRequest, PhoneLoginRequest, PasswordLoginRequest, CaptchaData, UpdatePersonRequest
+from app.schemas.user import UserCreate, UserResponse, UserUpdate, SmsCodeRequest, ApiResponse, RegisterRequest, RegisterTokenData, RefreshTokenRequest, PhoneLoginRequest, PasswordLoginRequest, CaptchaData, UpdatePersonRequest, UpdatePasswordRequest
 
 router = APIRouter()
 
@@ -84,6 +84,17 @@ def update_person(
     """更新当前登录用户的个人资料"""
     service = UserService(db)
     result = service.update_person(req, authorization)
+    return ApiResponse[dict](data=result)
+
+@router.post("/info/updatePassword", response_model=ApiResponse[dict])
+def update_password(
+    req: UpdatePasswordRequest,
+    authorization: str = Header(...),
+    db: Session = Depends(get_db)
+):
+    """更新当前登录用户的密码"""
+    service = UserService(db)
+    result = service.update_password(req, authorization)
     return ApiResponse[dict](data=result)
 
 @router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
