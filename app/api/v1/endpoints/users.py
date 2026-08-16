@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Header
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.services.user_service import UserService
-from app.schemas.user import UserCreate, UserResponse, UserUpdate, SmsCodeRequest, ApiResponse, RegisterRequest, RegisterTokenData, RefreshTokenRequest, PhoneLoginRequest, PasswordLoginRequest, CaptchaData, UpdatePersonRequest, UpdatePasswordRequest, BindPhoneRequest
+from app.schemas.user import UserCreate, UserResponse, UserUpdate, SmsCodeRequest, ApiResponse, RegisterRequest, RegisterTokenData, RefreshTokenRequest, PhoneLoginRequest, PasswordLoginRequest, CaptchaData, UpdatePersonRequest, UpdatePasswordRequest, BindPhoneRequest, PersonInfo
 
 router = APIRouter()
 
@@ -106,6 +106,27 @@ def logoff(
     service = UserService(db)
     result = service.logoff(authorization)
     return ApiResponse[dict](data=result)
+
+@router.post("/info/bindPhone", response_model=ApiResponse[dict])
+def bind_phone(
+    req: BindPhoneRequest,
+    authorization: str = Header(...),
+    db: Session = Depends(get_db)
+):
+    """绑定手机号"""
+    service = UserService(db)
+    result = service.bind_phone(req, authorization)
+    return ApiResponse[dict](data=result)
+
+@router.get("/info/person", response_model=ApiResponse[PersonInfo])
+def get_person_info(
+    authorization: str = Header(...),
+    db: Session = Depends(get_db)
+):
+    """获取当前登录用户的个人信息"""
+    service = UserService(db)
+    person_info = service.get_person_info(authorization)
+    return ApiResponse[PersonInfo](data=person_info)
 
 @router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def create_user(user: UserCreate, db: Session = Depends(get_db)):

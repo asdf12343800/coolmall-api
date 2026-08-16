@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from app.models.user import User
-from app.schemas.user import UserCreate, UserUpdate, SmsCodeRequest, RegisterRequest, RegisterTokenData, RefreshTokenRequest, PhoneLoginRequest, PasswordLoginRequest, CaptchaData, UpdatePersonRequest, UpdatePasswordRequest, BindPhoneRequest
+from app.schemas.user import UserCreate, UserUpdate, SmsCodeRequest, RegisterRequest, RegisterTokenData, RefreshTokenRequest, PhoneLoginRequest, PasswordLoginRequest, CaptchaData, UpdatePersonRequest, UpdatePasswordRequest, BindPhoneRequest, PersonInfo
 from app.core.config import settings
 from passlib.context import CryptContext
 from jose import jwt
@@ -397,3 +397,31 @@ class UserService:
         user.phone = req.phone
         self.db.commit()
         return {}
+    
+    def get_person_info(self, authorization: str) -> PersonInfo:
+        """获取当前登录用户的个人信息"""
+        user_id = self._get_user_id_from_token(authorization)
+        user = self.get_user(user_id)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="用户不存在"
+            )
+        def _fmt(dt):
+            if not dt:
+                return ""
+            if dt.tzinfo is not None:
+                dt = dt.replace(tzinfo=None)
+            return dt.strftime("%Y-%m-%d %H:%M:%S")
+        return PersonInfo(
+            id=user.id,
+            unionid=user.unionid,
+            avatar_url=user.avatar,
+            nick_name=user.username,
+            phone=user.phone,
+            gender=user.gender or 0,
+            status=1 if user.is_active else 0,
+            login_type=user.login_type or "0",
+            create_time=_fmt(user.created_at),
+            update_time=_fmt(user.updated_at) if user.updated_at else _fmt(user.created_at),
+        )

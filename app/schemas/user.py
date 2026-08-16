@@ -90,3 +90,15 @@ class UpdatePasswordRequest(BaseModel):
 class BindPhoneRequest(BaseModel):
     phone: str = Field(..., description="待绑定的手机号", min_length=11, max_length=11)
     sms_code: str = Field(..., alias="smsCode", description="短信验证码", min_length=4, max_length=6)
+
+class PersonInfo(BaseModel):
+    id: int = Field(..., description="用户ID")
+    unionid: Optional[str] = Field(default=None, description="微信unionid")
+    avatar_url: Optional[str] = Field(default=None, alias="avatarUrl", description="头像URL")
+    nick_name: Optional[str] = Field(default=None, alias="nickName", description="昵称")
+    phone: Optional[str] = Field(default=None, description="手机号")
+    gender: int = Field(default=0, description="性别: 0-未知 1-男 2-女")
+    status: int = Field(..., description="账号状态: 1-正常 0-禁用")
+    login_type: str = Field(default="0", alias="loginType", description="登录类型")
+    create_time: str = Field(..., alias="createTime", description="创建时间")
+    update_time: str = Field(..., alias="updateTime", description="更新时间")
