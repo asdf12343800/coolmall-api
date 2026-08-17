@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.schemas.order import (
     OrderUpdateRequest, RefundRequest, OrderPageRequest, OrderPageData,
-    OrderCreateRequest, OrderCreateResponse,
+    OrderCreateRequest, OrderCreateResponse, OrderCancelRequest,
 )
 from app.schemas.user import ApiResponse
 from app.services.order_service import OrderService
@@ -33,6 +33,18 @@ def refund_order(
     """申请退款"""
     service = OrderService(db)
     result = service.refund(req, authorization)
+    return ApiResponse[bool](data=result)
+
+
+@router.post("/cancel", response_model=ApiResponse[bool])
+def cancel_order(
+    req: OrderCancelRequest,
+    authorization: str = Header(...),
+    db: Session = Depends(get_db),
+):
+    """取消订单"""
+    service = OrderService(db)
+    result = service.cancel_order(req, authorization)
     return ApiResponse[bool](data=result)
 
 

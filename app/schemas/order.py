@@ -114,6 +114,11 @@ class RefundRequest(BaseModel):
     reason: str = Field(..., description="退款原因")
 
 
+class OrderCancelRequest(BaseModel):
+    order_id: int = Field(..., alias="orderId", description="订单ID")
+    remark: str = Field(..., description="取消原因")
+
+
 class OrderPageRequest(BaseModel):
     page: int = Field(default=1, description="页码", ge=1)
     size: int = Field(default=10, description="每页条数", ge=1)

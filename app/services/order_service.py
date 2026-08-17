@@ -10,7 +10,7 @@ from app.models.order import Order
 from app.models.address import Address
 from app.schemas.order import (
     OrderUpdateRequest, RefundRequest, OrderPageRequest, OrderPageData, OrderItem,
-    OrderCreateRequest, OrderCreateResponse,
+    OrderCreateRequest, OrderCreateResponse, OrderCancelRequest,
 )
 from app.schemas.address import Pagination
 from app.services.user_service import UserService
@@ -137,6 +137,28 @@ class OrderService:
             "applyTime": now.strftime("%Y-%m-%d %H:%M:%S"),
             "status": 1,
         }
+        self.db.commit()
+        return True
+
+    def cancel_order(self, req: OrderCancelRequest, authorization: str) -> bool:
+        """取消订单"""
+        user_service = UserService(self.db)
+        user_id = user_service._get_user_id_from_token(authorization)
+
+        order = self.db.query(Order).filter(Order.id == req.order_id).first()
+        if not order:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="订单不存在",
+            )
+        if order.user_id != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="无权操作该订单",
+            )
+
+        order.status = 4  # 已取消
+        order.close_remark = req.remark
         self.db.commit()
         return True
 
