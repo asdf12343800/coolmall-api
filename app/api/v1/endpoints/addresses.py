@@ -66,3 +66,15 @@ def create_address(
     service = AddressService(db)
     data = service.create_address(req, authorization)
     return ApiResponse[AddressCreateResponse](data=data)
+
+
+@router.get("/info", response_model=ApiResponse[AddressItem])
+def get_address(
+    id: int,
+    authorization: str = Header(...),
+    db: Session = Depends(get_db)
+):
+    """根据ID查询单个收货地址"""
+    service = AddressService(db)
+    data = service.get_address(id, authorization)
+    return ApiResponse[AddressItem](data=data)

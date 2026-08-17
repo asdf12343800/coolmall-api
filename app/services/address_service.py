@@ -161,3 +161,32 @@ class AddressService:
         self.db.commit()
         self.db.refresh(address)
         return AddressCreateResponse(id=address.id)
+
+    def get_address(self, address_id: int, authorization: str) -> AddressItem:
+        """根据ID查询单个收货地址"""
+        user_service = UserService(self.db)
+        user_id = user_service._get_user_id_from_token(authorization)
+        address = self.db.query(Address).filter(Address.id == address_id).first()
+        if not address:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="地址不存在"
+            )
+        if address.user_id != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="无权查看他人地址"
+            )
+        return AddressItem(
+            id=address.id,
+            create_time=_fmt(address.created_at),
+            update_time=_fmt(address.updated_at) if address.updated_at else _fmt(address.created_at),
+            user_id=address.user_id,
+            contact=address.contact,
+            phone=address.phone,
+            province=address.province,
+            city=address.city,
+            district=address.district,
+            address=address.address,
+            is_default=address.is_default,
+        )
