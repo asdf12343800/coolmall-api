@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Header
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.schemas.order import OrderUpdateRequest, RefundRequest
+from app.schemas.order import OrderUpdateRequest, RefundRequest, OrderPageRequest, OrderPageData
 from app.schemas.user import ApiResponse
 from app.services.order_service import OrderService
 
@@ -31,3 +31,15 @@ def refund_order(
     service = OrderService(db)
     result = service.refund(req, authorization)
     return ApiResponse[bool](data=result)
+
+
+@router.post("/page", response_model=ApiResponse[OrderPageData])
+def page_orders(
+    req: OrderPageRequest,
+    authorization: str = Header(...),
+    db: Session = Depends(get_db),
+):
+    """分页查询当前用户的订单"""
+    service = OrderService(db)
+    data = service.page_orders(req, authorization)
+    return ApiResponse[OrderPageData](data=data)

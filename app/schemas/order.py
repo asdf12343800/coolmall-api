@@ -1,5 +1,6 @@
 from typing import Optional, List, Any, Dict
 from pydantic import BaseModel, Field
+from app.schemas.address import Pagination
 
 
 class DiscountSource(BaseModel):
@@ -110,3 +111,40 @@ class OrderUpdateRequest(BaseModel):
 class RefundRequest(BaseModel):
     order_id: int = Field(..., alias="orderId", description="订单ID")
     reason: str = Field(..., description="退款原因")
+
+
+class OrderPageRequest(BaseModel):
+    page: int = Field(default=1, description="页码", ge=1)
+    size: int = Field(default=10, description="每页条数", ge=1)
+    sort: str = Field(default="desc", description="排序方向: asc/desc")
+    order: str = Field(default="updateTime", description="排序字段")
+
+
+class OrderItem(BaseModel):
+    id: int
+    create_time: str = Field(..., alias="createTime")
+    update_time: str = Field(..., alias="updateTime")
+    user_id: int = Field(..., alias="userId")
+    title: Optional[str] = None
+    pay_type: Optional[int] = Field(default=None, alias="payType")
+    pay_time: Optional[str] = Field(default=None, alias="payTime")
+    order_num: str = Field(..., alias="orderNum")
+    status: int
+    price: Optional[float] = None
+    discount_price: Optional[float] = Field(default=None, alias="discountPrice")
+    discount_source: Optional[DiscountSource] = Field(default=None, alias="discountSource")
+    address: Optional[UserAddressEntity] = None
+    logistics: Optional[Logistics] = None
+    refund: Optional[Refund] = None
+    refund_status: Optional[int] = Field(default=None, alias="refundStatus")
+    refund_apply_time: Optional[str] = Field(default=None, alias="refundApplyTime")
+    remark: Optional[str] = None
+    close_remark: Optional[str] = Field(default=None, alias="closeRemark")
+    invoice: Optional[int] = None
+    wx_type: Optional[int] = Field(default=None, alias="wxType")
+    goods_list: Optional[List[OrderGoodsEntity]] = Field(default=None, alias="goodsList")
+
+
+class OrderPageData(BaseModel):
+    list: List[OrderItem]
+    pagination: Pagination

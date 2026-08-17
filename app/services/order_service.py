@@ -5,8 +5,27 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.models.order import Order
-from app.schemas.order import OrderUpdateRequest, RefundRequest
+from app.schemas.order import OrderUpdateRequest, RefundRequest, OrderPageRequest, OrderPageData, OrderItem
+from app.schemas.address import Pagination
 from app.services.user_service import UserService
+
+
+def _fmt(dt):
+    """格式化日期时间为字符串，None返回空串"""
+    if not dt:
+        return ""
+    if dt.tzinfo is not None:
+        dt = dt.replace(tzinfo=None)
+    return dt.strftime("%Y-%m-%d %H:%M:%S")
+
+
+def _fmt_opt(dt):
+    """格式化日期时间，None返回None"""
+    if not dt:
+        return None
+    if dt.tzinfo is not None:
+        dt = dt.replace(tzinfo=None)
+    return dt.strftime("%Y-%m-%d %H:%M:%S")
 
 
 def _parse_dt(value: Optional[str]) -> Optional[datetime]:
@@ -114,3 +133,52 @@ class OrderService:
         }
         self.db.commit()
         return True
+
+    def page_orders(self, req: OrderPageRequest, authorization: str) -> OrderPageData:
+        """分页查询当前用户的订单"""
+        user_service = UserService(self.db)
+        user_id = user_service._get_user_id_from_token(authorization)
+        query = self.db.query(Order).filter(Order.user_id == user_id)
+        order_map = {
+            "updateTime": Order.updated_at,
+            "createTime": Order.created_at,
+            "id": Order.id,
+        }
+        sort_col = order_map.get(req.order, Order.updated_at)
+        if req.sort == "asc":
+            query = query.order_by(sort_col.asc())
+        else:
+            query = query.order_by(sort_col.desc())
+        total = query.count()
+        items = query.offset((req.page - 1) * req.size).limit(req.size).all()
+        return OrderPageData(
+            list=[self._to_item(o) for o in items],
+            pagination=Pagination(total=total, size=req.size, page=req.page),
+        )
+
+    def _to_item(self, order: Order) -> OrderItem:
+        """将Order模型转换为OrderItem响应"""
+        return OrderItem(
+            id=order.id,
+            create_time=_fmt(order.created_at),
+            update_time=_fmt(order.updated_at) if order.updated_at else _fmt(order.created_at),
+            user_id=order.user_id,
+            title=order.title,
+            pay_type=order.pay_type,
+            pay_time=_fmt_opt(order.pay_time),
+            order_num=order.order_no,
+            status=order.status,
+            price=float(order.price) if order.price is not None else float(order.total_amount),
+            discount_price=float(order.discount_price) if order.discount_price is not None else None,
+            discount_source=order.discount_source,
+            address=order.address_info,
+            logistics=order.logistics,
+            refund=order.refund_info,
+            refund_status=order.refund_status,
+            refund_apply_time=_fmt_opt(order.refund_apply_time),
+            remark=order.remark,
+            close_remark=order.close_remark,
+            invoice=order.invoice,
+            wx_type=order.wx_type,
+            goods_list=order.goods_list,
+        )
