@@ -1,7 +1,7 @@
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from app.models.address import Address
-from app.schemas.address import AddressUpdateRequest, AddressPageRequest, AddressPageData, AddressItem, Pagination, AddressDeleteRequest
+from app.schemas.address import AddressUpdateRequest, AddressPageRequest, AddressPageData, AddressItem, Pagination, AddressDeleteRequest, AddressCreateRequest, AddressCreateResponse
 from app.services.user_service import UserService
 
 
@@ -136,3 +136,28 @@ class AddressService:
             self.db.delete(a)
         self.db.commit()
         return {}
+
+    def create_address(self, req: AddressCreateRequest, authorization: str) -> AddressCreateResponse:
+        """新增收货地址"""
+        user_service = UserService(self.db)
+        user_id = user_service._get_user_id_from_token(authorization)
+        # 设为默认时，取消其他默认地址
+        if req.is_default:
+            self.db.query(Address).filter(
+                Address.user_id == user_id,
+                Address.is_default == True,
+            ).update({"is_default": False})
+        address = Address(
+            user_id=user_id,
+            contact=req.contact,
+            phone=req.phone,
+            province=req.province,
+            city=req.city,
+            district=req.district,
+            address=req.address,
+            is_default=req.is_default,
+        )
+        self.db.add(address)
+        self.db.commit()
+        self.db.refresh(address)
+        return AddressCreateResponse(id=address.id)

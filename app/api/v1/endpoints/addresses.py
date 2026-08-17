@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, Header
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.services.address_service import AddressService
-from app.schemas.address import AddressUpdateRequest, AddressPageRequest, AddressPageData, AddressItem, AddressDeleteRequest
+from app.schemas.address import AddressUpdateRequest, AddressPageRequest, AddressPageData, AddressItem, AddressDeleteRequest, AddressCreateRequest, AddressCreateResponse
 from app.schemas.user import ApiResponse
 
 router = APIRouter()
@@ -54,3 +54,15 @@ def delete_addresses(
     service = AddressService(db)
     result = service.delete_addresses(req, authorization)
     return ApiResponse[dict](data=result)
+
+
+@router.post("/add", response_model=ApiResponse[AddressCreateResponse])
+def create_address(
+    req: AddressCreateRequest,
+    authorization: str = Header(...),
+    db: Session = Depends(get_db)
+):
+    """新增收货地址"""
+    service = AddressService(db)
+    data = service.create_address(req, authorization)
+    return ApiResponse[AddressCreateResponse](data=data)
