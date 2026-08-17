@@ -190,3 +190,31 @@ class AddressService:
             address=address.address,
             is_default=address.is_default,
         )
+
+    def get_default_address(self, authorization: str) -> AddressItem:
+        """查询当前用户的默认收货地址"""
+        user_service = UserService(self.db)
+        user_id = user_service._get_user_id_from_token(authorization)
+        address = (
+            self.db.query(Address)
+            .filter(Address.user_id == user_id, Address.is_default == True)
+            .first()
+        )
+        if not address:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="暂无默认地址"
+            )
+        return AddressItem(
+            id=address.id,
+            create_time=_fmt(address.created_at),
+            update_time=_fmt(address.updated_at) if address.updated_at else _fmt(address.created_at),
+            user_id=address.user_id,
+            contact=address.contact,
+            phone=address.phone,
+            province=address.province,
+            city=address.city,
+            district=address.district,
+            address=address.address,
+            is_default=address.is_default,
+        )

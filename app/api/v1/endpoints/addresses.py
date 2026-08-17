@@ -78,3 +78,14 @@ def get_address(
     service = AddressService(db)
     data = service.get_address(id, authorization)
     return ApiResponse[AddressItem](data=data)
+
+
+@router.get("/default", response_model=ApiResponse[AddressItem])
+def get_default_address(
+    authorization: str = Header(...),
+    db: Session = Depends(get_db)
+):
+    """查询当前用户的默认收货地址"""
+    service = AddressService(db)
+    data = service.get_default_address(authorization)
+    return ApiResponse[AddressItem](data=data)
