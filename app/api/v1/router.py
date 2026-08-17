@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import users, addresses, payments, orders
+from app.api.v1.endpoints import users, addresses, payments, orders, coupons
 
 api_router = APIRouter()
 
@@ -25,4 +25,10 @@ api_router.include_router(
     orders.router,
     prefix="/app/order/info",
     tags=["orders"]
+)
+
+api_router.include_router(
+    coupons.router,
+    prefix="/app/market/coupon/user",
+    tags=["coupons"]
 )
