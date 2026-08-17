@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Header
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.schemas.order import OrderUpdateRequest
+from app.schemas.order import OrderUpdateRequest, RefundRequest
 from app.schemas.user import ApiResponse
 from app.services.order_service import OrderService
 
@@ -19,3 +19,15 @@ def update_order(
     service = OrderService(db)
     result = service.update_order(req, authorization)
     return ApiResponse[dict](data=result)
+
+
+@router.post("/refund", response_model=ApiResponse[bool])
+def refund_order(
+    req: RefundRequest,
+    authorization: str = Header(...),
+    db: Session = Depends(get_db),
+):
+    """申请退款"""
+    service = OrderService(db)
+    result = service.refund(req, authorization)
+    return ApiResponse[bool](data=result)

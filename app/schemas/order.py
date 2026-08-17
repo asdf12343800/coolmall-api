@@ -105,3 +105,8 @@ class OrderUpdateRequest(BaseModel):
     invoice: Optional[int] = Field(default=None, description="发票")
     wx_type: Optional[int] = Field(default=None, alias="wxType", description="微信类型")
     goods_list: Optional[List[OrderGoodsEntity]] = Field(default=None, alias="goodsList")
+
+
+class RefundRequest(BaseModel):
+    order_id: int = Field(..., alias="orderId", description="订单ID")
+    reason: str = Field(..., description="退款原因")

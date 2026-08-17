@@ -5,7 +5,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.models.order import Order
-from app.schemas.order import OrderUpdateRequest
+from app.schemas.order import OrderUpdateRequest, RefundRequest
 from app.services.user_service import UserService
 
 
@@ -85,3 +85,32 @@ class OrderService:
 
         self.db.commit()
         return {}
+
+    def refund(self, req: RefundRequest, authorization: str) -> bool:
+        """申请退款"""
+        user_service = UserService(self.db)
+        user_id = user_service._get_user_id_from_token(authorization)
+
+        order = self.db.query(Order).filter(Order.id == req.order_id).first()
+        if not order:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="订单不存在",
+            )
+        if order.user_id != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="无权操作该订单",
+            )
+
+        now = datetime.now()
+        order.refund_status = 1  # 退款申请中
+        order.refund_apply_time = now
+        order.refund_info = {
+            "orderNum": order.order_no,
+            "reason": req.reason,
+            "applyTime": now.strftime("%Y-%m-%d %H:%M:%S"),
+            "status": 1,
+        }
+        self.db.commit()
+        return True
