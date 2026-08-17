@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, Header
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.services.address_service import AddressService
-from app.schemas.address import AddressUpdateRequest, AddressPageRequest, AddressPageData, AddressItem
+from app.schemas.address import AddressUpdateRequest, AddressPageRequest, AddressPageData, AddressItem, AddressDeleteRequest
 from app.schemas.user import ApiResponse
 
 router = APIRouter()
@@ -42,3 +42,15 @@ def list_addresses(
     service = AddressService(db)
     data = service.list_addresses(authorization)
     return ApiResponse[List[AddressItem]](data=data)
+
+
+@router.post("/delete", response_model=ApiResponse[dict])
+def delete_addresses(
+    req: AddressDeleteRequest,
+    authorization: str = Header(...),
+    db: Session = Depends(get_db)
+):
+    """批量删除收货地址"""
+    service = AddressService(db)
+    result = service.delete_addresses(req, authorization)
+    return ApiResponse[dict](data=result)

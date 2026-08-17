@@ -57,3 +57,7 @@ class Pagination(BaseModel):
 class AddressPageData(BaseModel):
     list: List[AddressItem]
     pagination: Pagination
+
+
+class AddressDeleteRequest(BaseModel):
+    ids: List[int] = Field(..., description="地址ID数组，支持批量删除")

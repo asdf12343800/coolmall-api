@@ -1,7 +1,7 @@
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from app.models.address import Address
-from app.schemas.address import AddressUpdateRequest, AddressPageRequest, AddressPageData, AddressItem, Pagination
+from app.schemas.address import AddressUpdateRequest, AddressPageRequest, AddressPageData, AddressItem, Pagination, AddressDeleteRequest
 from app.services.user_service import UserService
 
 
@@ -115,3 +115,24 @@ class AddressService:
             )
             for a in items
         ]
+
+    def delete_addresses(self, req: AddressDeleteRequest, authorization: str) -> dict:
+        """批量删除收货地址"""
+        user_service = UserService(self.db)
+        user_id = user_service._get_user_id_from_token(authorization)
+        addresses = (
+            self.db.query(Address)
+            .filter(Address.id.in_(req.ids), Address.user_id == user_id)
+            .all()
+        )
+        found_ids = {a.id for a in addresses}
+        missing = set(req.ids) - found_ids
+        if missing:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"地址不存在或无权删除: {sorted(missing)}"
+            )
+        for a in addresses:
+            self.db.delete(a)
+        self.db.commit()
+        return {}
