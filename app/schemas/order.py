@@ -49,6 +49,7 @@ class GoodsSpecEntity(BaseModel):
     stock: Optional[int] = None
     sort_num: Optional[int] = Field(default=None, alias="sortNum")
     images: Optional[List[str]] = None
+    cover: Optional[str] = Field(default=None, description="规格封面图")
 
 
 class GoodsInfoEntity(BaseModel):
@@ -148,3 +149,26 @@ class OrderItem(BaseModel):
 class OrderPageData(BaseModel):
     list: List[OrderItem]
     pagination: Pagination
+
+
+class OrderCreateGoodsItem(BaseModel):
+    goods_info: GoodsInfoEntity = Field(..., alias="goodsInfo")
+    spec: GoodsSpecEntity
+    count: int = Field(..., description="购买数量")
+    goods_id: int = Field(..., alias="goodsId", description="商品ID")
+
+
+class OrderCreateData(BaseModel):
+    remark: str = Field(..., description="订单备注")
+    goods_list: List[OrderCreateGoodsItem] = Field(..., alias="goodsList")
+    coupon_id: int = Field(..., alias="couponId", description="优惠券ID")
+    address_id: int = Field(..., alias="addressId", description="收货地址ID")
+    title: str = Field(..., description="订单标题")
+
+
+class OrderCreateRequest(BaseModel):
+    data: OrderCreateData
+
+
+class OrderCreateResponse(BaseModel):
+    id: int = Field(..., description="新建订单ID")

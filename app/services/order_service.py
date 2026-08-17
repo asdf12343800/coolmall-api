@@ -1,3 +1,5 @@
+import time
+import random
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -5,7 +7,11 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.models.order import Order
-from app.schemas.order import OrderUpdateRequest, RefundRequest, OrderPageRequest, OrderPageData, OrderItem
+from app.models.address import Address
+from app.schemas.order import (
+    OrderUpdateRequest, RefundRequest, OrderPageRequest, OrderPageData, OrderItem,
+    OrderCreateRequest, OrderCreateResponse,
+)
 from app.schemas.address import Pagination
 from app.services.user_service import UserService
 
@@ -182,3 +188,60 @@ class OrderService:
             wx_type=order.wx_type,
             goods_list=order.goods_list,
         )
+
+    def create_order(self, req: OrderCreateRequest, authorization: str) -> OrderCreateResponse:
+        """创建订单"""
+        user_service = UserService(self.db)
+        user_id = user_service._get_user_id_from_token(authorization)
+        data = req.data
+
+        # 校验收货地址
+        address = self.db.query(Address).filter(
+            Address.id == data.address_id,
+            Address.user_id == user_id,
+        ).first()
+        if not address:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="收货地址不存在",
+            )
+
+        # 生成订单号: U + 时间戳 + 随机数
+        order_no = f"U{int(time.time())}{random.randint(10000, 99999)}"
+
+        # 计算订单总价 = sum(spec.price * count)
+        total = 0.0
+        goods_list_json = []
+        for item in data.goods_list:
+            unit_price = item.spec.price or 0
+            total += unit_price * item.count
+            goods_list_json.append(item.model_dump(by_alias=True, exclude_none=True))
+
+        # 序列化收货地址快照
+        address_json = {
+            "id": address.id,
+            "userId": address.user_id,
+            "contact": address.contact,
+            "phone": address.phone,
+            "province": address.province,
+            "city": address.city,
+            "district": address.district,
+            "address": address.address,
+            "isDefault": address.is_default,
+        }
+
+        order = Order(
+            user_id=user_id,
+            order_no=order_no,
+            total_amount=total,
+            status=0,
+            title=data.title,
+            price=total,
+            remark=data.remark,
+            address_info=address_json,
+            goods_list=goods_list_json,
+        )
+        self.db.add(order)
+        self.db.commit()
+        self.db.refresh(order)
+        return OrderCreateResponse(id=order.id)
