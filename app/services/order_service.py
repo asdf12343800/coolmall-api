@@ -355,3 +355,24 @@ class OrderService:
                 detail="无权查看该订单",
             )
         return self._to_item(order)
+
+    def confirm_order(self, order_id: int, authorization: str) -> bool:
+        """确认收货"""
+        user_service = UserService(self.db)
+        user_id = user_service._get_user_id_from_token(authorization)
+
+        order = self.db.query(Order).filter(Order.id == order_id).first()
+        if not order:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="订单不存在",
+            )
+        if order.user_id != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="无权操作该订单",
+            )
+
+        order.status = 3  # 已完成（已收货）
+        self.db.commit()
+        return True

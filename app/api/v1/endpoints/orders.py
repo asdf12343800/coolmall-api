@@ -106,3 +106,15 @@ def get_order_info(
     service = OrderService(db)
     data = service.get_order(id, authorization)
     return ApiResponse[OrderItem](data=data)
+
+
+@router.get("/confirm", response_model=ApiResponse[bool])
+def confirm_order(
+    orderId: str = Query(..., description="订单ID"),
+    authorization: str = Header(...),
+    db: Session = Depends(get_db),
+):
+    """确认收货"""
+    service = OrderService(db)
+    result = service.confirm_order(int(orderId), authorization)
+    return ApiResponse[bool](data=result)
