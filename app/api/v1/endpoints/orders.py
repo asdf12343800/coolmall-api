@@ -5,7 +5,7 @@ from app.core.database import get_db
 from app.schemas.order import (
     OrderUpdateRequest, RefundRequest, OrderPageRequest, OrderPageData,
     OrderCreateRequest, OrderCreateResponse, OrderCancelRequest, OrderCountData,
-    LogisticsData,
+    LogisticsData, OrderItem,
 )
 from app.schemas.user import ApiResponse
 from app.services.order_service import OrderService
@@ -94,3 +94,15 @@ def get_logistics(
     service = OrderService(db)
     data = service.logistics(int(orderId), authorization)
     return ApiResponse[LogisticsData](data=data)
+
+
+@router.get("/info", response_model=ApiResponse[OrderItem])
+def get_order_info(
+    id: int = Query(..., description="订单ID"),
+    authorization: str = Header(...),
+    db: Session = Depends(get_db),
+):
+    """根据ID查询单个订单"""
+    service = OrderService(db)
+    data = service.get_order(id, authorization)
+    return ApiResponse[OrderItem](data=data)

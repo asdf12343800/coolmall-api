@@ -337,3 +337,21 @@ class OrderService:
             updateTime=now_str,
             takeTime="0小时0分",
         )
+
+    def get_order(self, order_id: int, authorization: str) -> OrderItem:
+        """根据ID查询单个订单"""
+        user_service = UserService(self.db)
+        user_id = user_service._get_user_id_from_token(authorization)
+
+        order = self.db.query(Order).filter(Order.id == order_id).first()
+        if not order:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="订单不存在",
+            )
+        if order.user_id != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="无权查看该订单",
+            )
+        return self._to_item(order)
