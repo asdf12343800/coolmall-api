@@ -1,6 +1,6 @@
 from typing import List
 
-from fastapi import APIRouter, Depends, Header
+from fastapi import APIRouter, Depends, Header, Query
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.schemas.coupon import CouponPageRequest, CouponPageData, CouponUserItem
@@ -42,3 +42,15 @@ def list_coupons(
     service = CouponService(db)
     data = service.list_coupons(authorization)
     return ApiResponse[List[CouponUserItem]](data=data)
+
+
+@router.get("/info", response_model=ApiResponse[CouponUserItem])
+def get_coupon_info(
+    id: int = Query(..., description="优惠券领取记录ID"),
+    authorization: str = Header(...),
+    db: Session = Depends(get_db),
+):
+    """根据ID查询单个优惠券领取记录"""
+    service = CouponService(db)
+    data = service.get_coupon(id, authorization)
+    return ApiResponse[CouponUserItem](data=data)

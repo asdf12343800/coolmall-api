@@ -111,3 +111,29 @@ class CouponService:
             )
             for cu in rows
         ]
+
+    def get_coupon(self, coupon_user_id: int, authorization: str) -> CouponUserItem:
+        """根据ID查询单个优惠券领取记录"""
+        user_service = UserService(self.db)
+        user_id = user_service._get_user_id_from_token(authorization)
+
+        cu = self.db.query(CouponUser).filter(CouponUser.id == coupon_user_id).first()
+        if not cu:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="优惠券记录不存在",
+            )
+        if cu.user_id != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="无权查看该优惠券记录",
+            )
+        return CouponUserItem(
+            id=cu.id,
+            create_time=_fmt_std(cu.created_at) or "",
+            update_time=(_fmt_std(cu.updated_at) if cu.updated_at else (_fmt_std(cu.created_at) or "")),
+            user_id=cu.user_id,
+            coupon_id=cu.coupon_id,
+            status=cu.status,
+            use_time=_fmt_std(cu.used_time),
+        )
