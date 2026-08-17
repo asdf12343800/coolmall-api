@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, Header
+from fastapi import APIRouter, Depends, Header, Query
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.schemas.order import (
     OrderUpdateRequest, RefundRequest, OrderPageRequest, OrderPageData,
     OrderCreateRequest, OrderCreateResponse, OrderCancelRequest, OrderCountData,
+    LogisticsData,
 )
 from app.schemas.user import ApiResponse
 from app.services.order_service import OrderService
@@ -81,3 +82,15 @@ def user_count(
     service = OrderService(db)
     data = service.user_count(authorization)
     return ApiResponse[OrderCountData](data=data)
+
+
+@router.get("/logistics", response_model=ApiResponse[LogisticsData])
+def get_logistics(
+    orderId: str = Query(..., description="订单ID"),
+    authorization: str = Header(...),
+    db: Session = Depends(get_db),
+):
+    """物流信息查询"""
+    service = OrderService(db)
+    data = service.logistics(int(orderId), authorization)
+    return ApiResponse[LogisticsData](data=data)

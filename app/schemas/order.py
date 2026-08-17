@@ -183,3 +183,24 @@ class OrderCountData(BaseModel):
     closed: int = Field(default=0, alias="已关闭", description="已关闭订单数")
     pending_shipment: int = Field(default=0, alias="待发货", description="待发货订单数")
     pending_payment: int = Field(default=0, alias="待付款", description="待付款订单数")
+
+
+class LogisticsTraceItem(BaseModel):
+    time: str = Field(..., description="轨迹时间")
+    status: str = Field(..., description="轨迹状态描述")
+
+
+class LogisticsData(BaseModel):
+    number: str = Field(..., description="物流单号")
+    type: str = Field(..., description="快递公司编码")
+    list: List[LogisticsTraceItem] = Field(..., description="物流轨迹列表")
+    deliverystatus: str = Field(..., description="配送状态: 0=在途 1=揽收 2=疑难 3=签收 4=退签 5=派件 6=退回")
+    issign: str = Field(..., description="是否签收: 1=已签收 0=未签收")
+    expName: str = Field(..., description="快递公司名称")
+    expSite: str = Field(..., description="快递公司官网")
+    expPhone: str = Field(..., description="快递公司电话")
+    logo: str = Field(..., description="快递公司Logo URL")
+    courier: str = Field(..., description="快递员姓名")
+    courierPhone: str = Field(..., description="快递员电话")
+    updateTime: str = Field(..., description="最新更新时间")
+    takeTime: str = Field(..., description="已耗时")

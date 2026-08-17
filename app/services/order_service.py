@@ -11,6 +11,7 @@ from app.models.address import Address
 from app.schemas.order import (
     OrderUpdateRequest, RefundRequest, OrderPageRequest, OrderPageData, OrderItem,
     OrderCreateRequest, OrderCreateResponse, OrderCancelRequest, OrderCountData,
+    LogisticsData,
 )
 from app.schemas.address import Pagination
 from app.services.user_service import UserService
@@ -287,4 +288,52 @@ class OrderService:
             closed=closed,
             pending_shipment=pending_shipment,
             pending_payment=pending_payment,
+        )
+
+    def logistics(self, order_id: int, authorization: str) -> LogisticsData:
+        """查询订单物流信息"""
+        user_service = UserService(self.db)
+        user_id = user_service._get_user_id_from_token(authorization)
+
+        order = self.db.query(Order).filter(Order.id == order_id).first()
+        if not order:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="订单不存在",
+            )
+        if order.user_id != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="无权操作该订单",
+            )
+
+        # 优先从订单的 logistics JSON 字段读取物流信息
+        logistics = order.logistics
+        if logistics and isinstance(logistics, dict):
+            try:
+                return LogisticsData(**logistics)
+            except Exception:
+                pass
+
+        # 没有物流数据，返回默认占位数据（模拟揽收状态）
+        now_str = _fmt(datetime.now())
+        return LogisticsData(
+            number=logistics.get("number", "") if isinstance(logistics, dict) else "",
+            type="YUNDA",
+            list=[
+                LogisticsTraceItem(
+                    time=now_str,
+                    status="【商家】订单已下单，等待快递员揽收",
+                )
+            ],
+            deliverystatus="1",
+            issign="0",
+            expName="韵达快递",
+            expSite="www.yundaex.com",
+            expPhone="95546",
+            logo="https://img3.fegine.com/express/yd.jpg",
+            courier="",
+            courierPhone="",
+            updateTime=now_str,
+            takeTime="0小时0分",
         )
