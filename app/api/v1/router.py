@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import users, addresses, payments, orders, coupons, coupon_infos, banners
+from app.api.v1.endpoints import users, addresses, payments, orders, coupons, coupon_infos, banners, categories
 
 api_router = APIRouter()
 
@@ -43,4 +43,10 @@ api_router.include_router(
     banners.router,
     prefix="/app/info/banner",
     tags=["banners"]
+)
+
+api_router.include_router(
+    categories.router,
+    prefix="/app/info/category",
+    tags=["categories"]
 )
