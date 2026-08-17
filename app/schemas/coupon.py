@@ -48,3 +48,24 @@ class CouponUserItem(BaseModel):
     coupon_id: int = Field(..., alias="couponId")
     status: int
     use_time: Optional[str] = Field(default=None, alias="useTime")
+
+
+class CouponInfoItem(BaseModel):
+    id: int
+    title: str
+    description: Optional[str] = None
+    type: int = Field(..., description="优惠券类型: 0=满减券")
+    amount: float = Field(..., description="优惠金额")
+    num: int = Field(..., description="发行总量")
+    received_num: int = Field(..., alias="receivedNum", description="已领取数量")
+    start_time: str = Field(..., alias="startTime")
+    end_time: str = Field(..., alias="endTime")
+    status: int = Field(..., description="优惠券状态: 1=有效 0=失效")
+    create_time: str = Field(..., alias="createTime")
+    update_time: str = Field(..., alias="updateTime")
+    condition: CouponCondition
+
+
+class CouponInfoPageData(BaseModel):
+    list: list[CouponInfoItem]
+    pagination: Pagination

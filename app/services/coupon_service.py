@@ -4,6 +4,7 @@ from app.models.coupon import Coupon, CouponUser
 from app.schemas.address import Pagination
 from app.schemas.coupon import (
     CouponPageRequest, CouponPageData, CouponItem, CouponCondition, CouponUserItem,
+    CouponInfoItem, CouponInfoPageData,
 )
 from app.services.user_service import UserService
 
@@ -136,4 +137,47 @@ class CouponService:
             coupon_id=cu.coupon_id,
             status=cu.status,
             use_time=_fmt_std(cu.used_time),
+        )
+
+    def page_coupon_infos(self, req: CouponPageRequest, authorization: str) -> CouponInfoPageData:
+        """分页查询优惠券主表"""
+        user_service = UserService(self.db)
+        user_service._get_user_id_from_token(authorization)  # 校验 token
+
+        query = self.db.query(Coupon)
+        order_map = {
+            "updateTime": Coupon.updated_at,
+            "createTime": Coupon.created_at,
+            "id": Coupon.id,
+        }
+        sort_col = order_map.get(req.order, Coupon.updated_at)
+        if req.sort == "asc":
+            query = query.order_by(sort_col.asc())
+        else:
+            query = query.order_by(sort_col.desc())
+
+        total = query.count()
+        rows = query.offset((req.page - 1) * req.size).limit(req.size).all()
+
+        items = [
+            CouponInfoItem(
+                id=c.id,
+                title=c.title,
+                description="全场可用",
+                type=c.type,
+                amount=float(c.discount_value),
+                num=c.stock,
+                received_num=c.received,
+                start_time=_fmt_std(c.start_time) or "",
+                end_time=_fmt_std(c.end_time) or "",
+                status=c.status,
+                create_time=_fmt_std(c.created_at) or "",
+                update_time=(_fmt_std(c.updated_at) if c.updated_at else (_fmt_std(c.created_at) or "")),
+                condition=CouponCondition(full_amount=float(c.threshold)),
+            )
+            for c in rows
+        ]
+        return CouponInfoPageData(
+            list=items,
+            pagination=Pagination(total=total, size=req.size, page=req.page),
         )
