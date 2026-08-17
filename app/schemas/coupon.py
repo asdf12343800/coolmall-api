@@ -38,3 +38,13 @@ class CouponPageData(BaseModel):
 
 class CouponReceiveResponse(BaseModel):
     empty: bool = Field(default=True, description="是否为空")
+
+
+class CouponUserItem(BaseModel):
+    id: int
+    create_time: str = Field(..., alias="createTime")
+    update_time: str = Field(..., alias="updateTime")
+    user_id: int = Field(..., alias="userId")
+    coupon_id: int = Field(..., alias="couponId")
+    status: int
+    use_time: Optional[str] = Field(default=None, alias="useTime")

@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from app.models.coupon import Coupon, CouponUser
 from app.schemas.address import Pagination
 from app.schemas.coupon import (
-    CouponPageRequest, CouponPageData, CouponItem, CouponCondition,
+    CouponPageRequest, CouponPageData, CouponItem, CouponCondition, CouponUserItem,
 )
 from app.services.user_service import UserService
 
@@ -15,6 +15,15 @@ def _fmt_iso(dt):
     if dt.tzinfo is not None:
         dt = dt.replace(tzinfo=None)
     return dt.strftime("%Y-%m-%dT%H:%M:%S")
+
+
+def _fmt_std(dt):
+    """格式化日期时间为标准字符串，None 返回 None"""
+    if not dt:
+        return None
+    if dt.tzinfo is not None:
+        dt = dt.replace(tzinfo=None)
+    return dt.strftime("%Y-%m-%d %H:%M:%S")
 
 
 class CouponService:
@@ -78,3 +87,27 @@ class CouponService:
             list=items,
             pagination=Pagination(total=total, size=req.size, page=req.page),
         )
+
+    def list_coupons(self, authorization: str) -> list[CouponUserItem]:
+        """查询当前用户的所有优惠券领取记录"""
+        user_service = UserService(self.db)
+        user_id = user_service._get_user_id_from_token(authorization)
+
+        rows = (
+            self.db.query(CouponUser)
+            .filter(CouponUser.user_id == user_id)
+            .order_by(CouponUser.created_at.desc())
+            .all()
+        )
+        return [
+            CouponUserItem(
+                id=cu.id,
+                create_time=_fmt_std(cu.created_at) or "",
+                update_time=(_fmt_std(cu.updated_at) if cu.updated_at else (_fmt_std(cu.created_at) or "")),
+                user_id=cu.user_id,
+                coupon_id=cu.coupon_id,
+                status=cu.status,
+                use_time=_fmt_std(cu.used_time),
+            )
+            for cu in rows
+        ]
