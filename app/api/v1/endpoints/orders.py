@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.schemas.order import (
     OrderUpdateRequest, RefundRequest, OrderPageRequest, OrderPageData,
-    OrderCreateRequest, OrderCreateResponse, OrderCancelRequest,
+    OrderCreateRequest, OrderCreateResponse, OrderCancelRequest, OrderCountData,
 )
 from app.schemas.user import ApiResponse
 from app.services.order_service import OrderService
@@ -70,3 +70,14 @@ def create_order(
     service = OrderService(db)
     data = service.create_order(req, authorization)
     return ApiResponse[OrderCreateResponse](data=data)
+
+
+@router.get("/userCount", response_model=ApiResponse[OrderCountData])
+def user_count(
+    authorization: str = Header(...),
+    db: Session = Depends(get_db),
+):
+    """用户订单统计"""
+    service = OrderService(db)
+    data = service.user_count(authorization)
+    return ApiResponse[OrderCountData](data=data)

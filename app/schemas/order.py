@@ -177,3 +177,9 @@ class OrderCreateRequest(BaseModel):
 
 class OrderCreateResponse(BaseModel):
     id: int = Field(..., description="新建订单ID")
+
+
+class OrderCountData(BaseModel):
+    closed: int = Field(default=0, alias="已关闭", description="已关闭订单数")
+    pending_shipment: int = Field(default=0, alias="待发货", description="待发货订单数")
+    pending_payment: int = Field(default=0, alias="待付款", description="待付款订单数")

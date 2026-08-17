@@ -10,7 +10,7 @@ from app.models.order import Order
 from app.models.address import Address
 from app.schemas.order import (
     OrderUpdateRequest, RefundRequest, OrderPageRequest, OrderPageData, OrderItem,
-    OrderCreateRequest, OrderCreateResponse, OrderCancelRequest,
+    OrderCreateRequest, OrderCreateResponse, OrderCancelRequest, OrderCountData,
 )
 from app.schemas.address import Pagination
 from app.services.user_service import UserService
@@ -267,3 +267,24 @@ class OrderService:
         self.db.commit()
         self.db.refresh(order)
         return OrderCreateResponse(id=order.id)
+
+    def user_count(self, authorization: str) -> OrderCountData:
+        """用户订单统计"""
+        user_service = UserService(self.db)
+        user_id = user_service._get_user_id_from_token(authorization)
+
+        pending_payment = self.db.query(Order).filter(
+            Order.user_id == user_id, Order.status == 0,
+        ).count()
+        pending_shipment = self.db.query(Order).filter(
+            Order.user_id == user_id, Order.status == 1,
+        ).count()
+        closed = self.db.query(Order).filter(
+            Order.user_id == user_id, Order.status == 4,
+        ).count()
+
+        return OrderCountData(
+            closed=closed,
+            pending_shipment=pending_shipment,
+            pending_payment=pending_payment,
+        )
