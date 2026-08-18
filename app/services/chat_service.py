@@ -1,4 +1,5 @@
 import json
+from typing import Optional
 from sqlalchemy.orm import Session
 from app.models.chat import ChatSession, ChatMessage
 from app.models.user import User
@@ -32,25 +33,8 @@ class ChatService:
     def __init__(self, db: Session):
         self.db = db
 
-    def create_session(self, authorization: str) -> ChatSessionResponse:
-        """创建（或获取已有的）客服会话"""
-        user_service = UserService(self.db)
-        user_id = user_service._get_user_id_from_token(authorization)
-
-        # 查找该用户的已有会话，没有则新建
-        session = (
-            self.db.query(ChatSession)
-            .filter(ChatSession.user_id == user_id)
-            .order_by(ChatSession.id.desc())
-            .first()
-        )
-        if not session:
-            session = ChatSession(user_id=user_id, admin_unread_count=0)
-            self.db.add(session)
-            self.db.commit()
-            self.db.refresh(session)
-
-        # 查询最后一条消息
+    def _build_session_response(self, session: ChatSession, user: User | None) -> ChatSessionResponse:
+        """根据会话和用户构建会话响应（含最后一条消息）"""
         last_msg_row = (
             self.db.query(ChatMessage)
             .filter(ChatMessage.session_id == session.id)
@@ -58,8 +42,6 @@ class ChatService:
             .first()
         )
 
-        # 会话所属用户信息（昵称/头像）
-        user = self.db.query(User).filter(User.id == user_id).first()
         nick_name = user.username if user else None
         avatar_url = user.avatar if user else None
 
@@ -90,3 +72,39 @@ class ChatService:
             nick_name=nick_name,
             avatar_url=avatar_url,
         )
+
+    def _get_active_session(self, user_id: int) -> ChatSession | None:
+        """查找该用户的已有会话（取最新一条）"""
+        return (
+            self.db.query(ChatSession)
+            .filter(ChatSession.user_id == user_id)
+            .order_by(ChatSession.id.desc())
+            .first()
+        )
+
+    def create_session(self, authorization: str) -> ChatSessionResponse:
+        """创建（或获取已有的）客服会话"""
+        user_service = UserService(self.db)
+        user_id = user_service._get_user_id_from_token(authorization)
+
+        session = self._get_active_session(user_id)
+        if not session:
+            session = ChatSession(user_id=user_id, admin_unread_count=0)
+            self.db.add(session)
+            self.db.commit()
+            self.db.refresh(session)
+
+        user = self.db.query(User).filter(User.id == user_id).first()
+        return self._build_session_response(session, user)
+
+    def get_session_detail(self, authorization: str) -> Optional[ChatSessionResponse]:
+        """获取当前用户的会话详情，无会话返回 None"""
+        user_service = UserService(self.db)
+        user_id = user_service._get_user_id_from_token(authorization)
+
+        session = self._get_active_session(user_id)
+        if not session:
+            return None
+
+        user = self.db.query(User).filter(User.id == user_id).first()
+        return self._build_session_response(session, user)
