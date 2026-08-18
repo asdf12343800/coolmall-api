@@ -1,0 +1,129 @@
+import json
+from fastapi import HTTPException, status
+from sqlalchemy.orm import Session
+from app.models.goods_info import Goods
+from app.models.coupon import Coupon
+from app.models.comment import Comment
+from app.models.user import User
+from app.schemas.goods import GoodsItem, CommentItem
+from app.schemas.coupon import CouponInfoItem, CouponCondition
+from app.schemas.page import GoodsDetailPageData
+from app.services.user_service import UserService
+
+
+def _fmt_std(dt):
+    if not dt:
+        return ""
+    if dt.tzinfo is not None:
+        dt = dt.replace(tzinfo=None)
+    return dt.strftime("%Y-%m-%d %H:%M:%S")
+
+
+def _parse_images(raw):
+    if not raw:
+        return None
+    try:
+        data = json.loads(raw)
+        if isinstance(data, list):
+            return data
+    except Exception:
+        pass
+    return None
+
+
+class PageService:
+    def __init__(self, db: Session):
+        self.db = db
+
+    def get_goods_detail(self, goods_id: int, authorization: str) -> GoodsDetailPageData:
+        """获取商品详情页面数据"""
+        user_service = UserService(self.db)
+        user_service._get_user_id_from_token(authorization)
+
+        goods = self.db.query(Goods).filter(Goods.id == goods_id).first()
+        if not goods:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="商品不存在",
+            )
+
+        goods_info = GoodsItem(
+            id=goods.id,
+            create_time=_fmt_std(goods.created_at),
+            update_time=_fmt_std(goods.updated_at) if goods.updated_at else _fmt_std(goods.created_at),
+            type_id=goods.type_id,
+            title=goods.title,
+            sub_title=goods.sub_title,
+            main_pic=goods.main_pic,
+            pics=_parse_images(goods.pics),
+            price=float(goods.price),
+            sold=goods.sold,
+            content=goods.content,
+            content_pics=_parse_images(goods.content_pics),
+            recommend=goods.recommend,
+            featured=goods.featured,
+            status=goods.status,
+            sort_num=goods.sort_num,
+            specs=None,
+        )
+
+        coupons = (
+            self.db.query(Coupon)
+            .filter(Coupon.status == 1)
+            .order_by(Coupon.id.asc())
+            .all()
+        )
+        coupon_list = [
+            CouponInfoItem(
+                id=c.id,
+                title=c.title,
+                description="全场可用",
+                type=c.type,
+                amount=float(c.discount_value),
+                num=c.stock,
+                received_num=c.received,
+                start_time=_fmt_std(c.start_time) or "",
+                end_time=_fmt_std(c.end_time) or "",
+                status=c.status,
+                create_time=_fmt_std(c.created_at) or "",
+                update_time=(_fmt_std(c.updated_at) if c.updated_at else (_fmt_std(c.created_at) or "")),
+                condition=CouponCondition(full_amount=float(c.threshold)),
+            )
+            for c in coupons
+        ]
+
+        comments_query = (
+            self.db.query(Comment, User)
+            .outerjoin(User, User.id == Comment.user_id)
+            .filter(Comment.goods_id == goods_id)
+            .order_by(Comment.id.desc())
+            .limit(5)
+        )
+        comment_rows = comments_query.all()
+        comment_list = []
+        for c, u in comment_rows:
+            try:
+                order_id_val = int(c.order_id)
+            except (TypeError, ValueError):
+                order_id_val = 0
+            comment_list.append(
+                CommentItem(
+                    id=c.id,
+                    create_time=_fmt_std(c.created_at),
+                    update_time=_fmt_std(c.updated_at) if c.updated_at else _fmt_std(c.created_at),
+                    user_id=c.user_id,
+                    goods_id=c.goods_id,
+                    order_id=order_id_val,
+                    content=c.content,
+                    star_count=c.star_count,
+                    pics=_parse_images(c.pics) or [],
+                    nick_name=(u.username if u and u.username else ""),
+                    avatar_url=(u.avatar if u else None),
+                )
+            )
+
+        return GoodsDetailPageData(
+            goods_info=goods_info,
+            coupon=coupon_list,
+            comment=comment_list,
+        )
