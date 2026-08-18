@@ -16,3 +16,11 @@ class GoodsSpecItem(BaseModel):
     stock: int
     sort_num: int = Field(..., alias="sortNum")
     images: Optional[List[str]] = None
+
+
+class SearchKeywordItem(BaseModel):
+    id: int
+    create_time: str = Field(..., alias="createTime")
+    update_time: str = Field(..., alias="updateTime")
+    name: str
+    sort_num: int = Field(..., alias="sortNum")

@@ -1,7 +1,8 @@
 import json
 from sqlalchemy.orm import Session
 from app.models.goods import GoodsSpec
-from app.schemas.goods import GoodsSpecListRequest, GoodsSpecItem
+from app.models.search_keyword import SearchKeyword
+from app.schemas.goods import GoodsSpecListRequest, GoodsSpecItem, SearchKeywordItem
 from app.services.user_service import UserService
 
 
@@ -55,4 +56,25 @@ class GoodsService:
                 images=_parse_images(s.images),
             )
             for s in rows
+        ]
+
+    def list_keywords(self, authorization: str) -> list[SearchKeywordItem]:
+        """查询所有搜索关键词"""
+        user_service = UserService(self.db)
+        user_service._get_user_id_from_token(authorization)  # 校验 token
+
+        rows = (
+            self.db.query(SearchKeyword)
+            .order_by(SearchKeyword.sort_num.asc(), SearchKeyword.id.asc())
+            .all()
+        )
+        return [
+            SearchKeywordItem(
+                id=k.id,
+                create_time=_fmt_std(k.created_at),
+                update_time=_fmt_std(k.updated_at) if k.updated_at else _fmt_std(k.created_at),
+                name=k.name,
+                sort_num=k.sort_num,
+            )
+            for k in rows
         ]
