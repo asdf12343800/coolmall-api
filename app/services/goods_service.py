@@ -4,7 +4,8 @@ from sqlalchemy.orm import Session
 from app.models.goods import GoodsSpec
 from app.models.goods_info import Goods
 from app.models.search_keyword import SearchKeyword
-from app.schemas.goods import GoodsSpecListRequest, GoodsSpecItem, SearchKeywordItem, GoodsPageRequest, GoodsItem, GoodsPageData
+from app.models.comment import Comment
+from app.schemas.goods import GoodsSpecListRequest, GoodsSpecItem, SearchKeywordItem, GoodsPageRequest, GoodsItem, GoodsPageData, CommentSubmitRequest
 from app.schemas.address import Pagination
 from app.services.user_service import UserService
 
@@ -152,3 +153,21 @@ class GoodsService:
             sort_num=g.sort_num,
             specs=None,
         )
+
+    def submit_comment(self, req: CommentSubmitRequest, authorization: str) -> bool:
+        """提交商品评论"""
+        user_service = UserService(self.db)
+        user_id = user_service._get_user_id_from_token(authorization)
+
+        data = req.data
+        comment = Comment(
+            order_id=data.order_id,
+            goods_id=int(data.goods_id),
+            user_id=user_id,
+            content=data.content,
+            star_count=data.star_count,
+            pics=json.dumps(data.pics, ensure_ascii=False) if data.pics else None,
+        )
+        self.db.add(comment)
+        self.db.commit()
+        return True

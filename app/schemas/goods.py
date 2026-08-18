@@ -55,3 +55,16 @@ class GoodsItem(BaseModel):
 class GoodsPageData(BaseModel):
     list: list[GoodsItem]
     pagination: Pagination
+
+
+class CommentSubmitData(BaseModel):
+    order_id: str = Field(..., alias="orderId", description="订单号")
+    goods_id: str = Field(..., alias="goodsId", description="商品ID")
+    content: str = Field(..., description="评论内容")
+    star_count: int = Field(..., alias="starCount", description="星级")
+    pics: List[str] = Field(default_factory=list, description="评论图片")
+
+
+class CommentSubmitRequest(BaseModel):
+    order_id: str = Field(..., alias="orderId", description="订单号")
+    data: CommentSubmitData
