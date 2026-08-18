@@ -5,7 +5,7 @@ from app.models.goods import GoodsSpec
 from app.models.goods_info import Goods
 from app.models.search_keyword import SearchKeyword
 from app.models.comment import Comment
-from app.schemas.goods import GoodsSpecListRequest, GoodsSpecItem, SearchKeywordItem, GoodsPageRequest, GoodsItem, GoodsPageData, CommentSubmitRequest
+from app.schemas.goods import GoodsSpecListRequest, GoodsSpecItem, SearchKeywordItem, GoodsPageRequest, GoodsItem, GoodsPageData, CommentSubmitRequest, CommentPageRequest, CommentItem, CommentPageData
 from app.schemas.address import Pagination
 from app.services.user_service import UserService
 
@@ -171,3 +171,48 @@ class GoodsService:
         self.db.add(comment)
         self.db.commit()
         return True
+
+    def page_comments(self, req: CommentPageRequest, authorization: str) -> CommentPageData:
+        """分页查询商品评论"""
+        user_service = UserService(self.db)
+        user_service._get_user_id_from_token(authorization)  # 校验 token
+
+        from app.models.user import User
+
+        query = (
+            self.db.query(Comment, User)
+            .outerjoin(User, User.id == Comment.user_id)
+            .filter(Comment.goods_id == int(req.goods_id))
+        )
+        total = query.count()
+        rows = (
+            query.order_by(Comment.id.desc())
+            .offset((req.page - 1) * req.size)
+            .limit(req.size)
+            .all()
+        )
+        items = []
+        for c, u in rows:
+            try:
+                order_id_val = int(c.order_id)
+            except (TypeError, ValueError):
+                order_id_val = 0
+            items.append(
+                CommentItem(
+                    id=c.id,
+                    create_time=_fmt_std(c.created_at),
+                    update_time=_fmt_std(c.updated_at) if c.updated_at else _fmt_std(c.created_at),
+                    user_id=c.user_id,
+                    goods_id=c.goods_id,
+                    order_id=order_id_val,
+                    content=c.content,
+                    star_count=c.star_count,
+                    pics=_parse_images(c.pics) or [],
+                    nick_name=(u.username if u and u.username else "") ,
+                    avatar_url=(u.avatar if u else None),
+                )
+            )
+        return CommentPageData(
+            list=items,
+            pagination=Pagination(total=total, size=req.size, page=req.page),
+        )

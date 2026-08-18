@@ -3,7 +3,7 @@ from typing import List
 from fastapi import APIRouter, Depends, Header, Query
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from app.schemas.goods import GoodsSpecListRequest, GoodsSpecItem, SearchKeywordItem, GoodsPageRequest, GoodsItem, GoodsPageData, CommentSubmitRequest
+from app.schemas.goods import GoodsSpecListRequest, GoodsSpecItem, SearchKeywordItem, GoodsPageRequest, GoodsItem, GoodsPageData, CommentSubmitRequest, CommentPageRequest, CommentItem, CommentPageData
 from app.schemas.user import ApiResponse
 from app.services.goods_service import GoodsService
 
@@ -67,3 +67,15 @@ def submit_comment(
     service = GoodsService(db)
     data = service.submit_comment(req, authorization)
     return ApiResponse[bool](data=data)
+
+
+@router.post("/comment/page", response_model=ApiResponse[CommentPageData])
+def page_comments(
+    req: CommentPageRequest,
+    authorization: str = Header(...),
+    db: Session = Depends(get_db),
+):
+    """分页查询商品评论"""
+    service = GoodsService(db)
+    data = service.page_comments(req, authorization)
+    return ApiResponse[CommentPageData](data=data)

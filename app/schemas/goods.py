@@ -68,3 +68,28 @@ class CommentSubmitData(BaseModel):
 class CommentSubmitRequest(BaseModel):
     order_id: str = Field(..., alias="orderId", description="订单号")
     data: CommentSubmitData
+
+
+class CommentPageRequest(BaseModel):
+    page: int = Field(..., description="页码", ge=1)
+    size: int = Field(..., description="每页条数", ge=1)
+    goods_id: str = Field(..., alias="goodsId", description="商品ID")
+
+
+class CommentItem(BaseModel):
+    id: int
+    create_time: str = Field(..., alias="createTime")
+    update_time: str = Field(..., alias="updateTime")
+    user_id: int = Field(..., alias="userId")
+    goods_id: int = Field(..., alias="goodsId")
+    order_id: int = Field(..., alias="orderId")
+    content: str
+    star_count: int = Field(..., alias="starCount")
+    pics: List[str] = Field(default_factory=list)
+    nick_name: str = Field(..., alias="nickName")
+    avatar_url: Optional[str] = Field(default=None, alias="avatarUrl")
+
+
+class CommentPageData(BaseModel):
+    list: list[CommentItem]
+    pagination: Pagination
