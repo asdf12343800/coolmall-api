@@ -3,7 +3,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 from app.models.chat import ChatSession, ChatMessage
 from app.models.user import User
-from app.schemas.chat import ChatSessionResponse, ChatMessageItem, ChatMessageContent
+from app.schemas.chat import ChatSessionResponse, ChatMessageItem, ChatMessageContent, MsgReadRequest
 from app.services.user_service import UserService
 
 
@@ -108,3 +108,21 @@ class ChatService:
 
         user = self.db.query(User).filter(User.id == user_id).first()
         return self._build_session_response(session, user)
+
+    def read_messages(self, req: MsgReadRequest, authorization: str) -> bool:
+        """标记消息为已读（仅限当前用户的消息）"""
+        user_service = UserService(self.db)
+        user_id = user_service._get_user_id_from_token(authorization)
+
+        if not req.msg_ids:
+            return True
+
+        rows = (
+            self.db.query(ChatMessage)
+            .filter(ChatMessage.id.in_(req.msg_ids), ChatMessage.user_id == user_id)
+            .all()
+        )
+        for m in rows:
+            m.status = 1
+        self.db.commit()
+        return True

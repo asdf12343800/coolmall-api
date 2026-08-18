@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel, Field
 
 
@@ -31,3 +31,7 @@ class ChatSessionResponse(BaseModel):
     admin_unread_count: int = Field(..., alias="adminUnreadCount")
     nick_name: Optional[str] = Field(default=None, alias="nickName")
     avatar_url: Optional[str] = Field(default=None, alias="avatarUrl")
+
+
+class MsgReadRequest(BaseModel):
+    msg_ids: List[int] = Field(..., alias="msgIds", description="消息ID数组")

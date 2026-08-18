@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Header
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from app.schemas.chat import ChatSessionResponse
+from app.schemas.chat import ChatSessionResponse, MsgReadRequest
 from app.schemas.user import ApiResponse
 from app.services.chat_service import ChatService
 
@@ -28,3 +28,15 @@ def get_session_detail(
     service = ChatService(db)
     data = service.get_session_detail(authorization)
     return ApiResponse[ChatSessionResponse](data=data)
+
+
+@router.post("/msg/read", response_model=ApiResponse[bool])
+def read_messages(
+    req: MsgReadRequest,
+    authorization: str = Header(...),
+    db: Session = Depends(get_db),
+):
+    """标记消息为已读"""
+    service = ChatService(db)
+    data = service.read_messages(req, authorization)
+    return ApiResponse[bool](data=data)
