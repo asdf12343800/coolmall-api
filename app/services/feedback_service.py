@@ -1,4 +1,5 @@
 import json
+from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from app.models.feedback import Feedback
 from app.schemas.feedback import (
@@ -80,4 +81,35 @@ class FeedbackService:
         return FeedbackPageData(
             list=items,
             pagination=Pagination(total=total, size=req.size, page=req.page),
+        )
+
+    def get_feedback_info(self, feedback_id: int, authorization: str) -> FeedbackItem:
+        """根据ID查询单条反馈详情，校验归属"""
+        user_service = UserService(self.db)
+        user_id = user_service._get_user_id_from_token(authorization)
+
+        row = self.db.query(Feedback).filter(Feedback.id == feedback_id).first()
+        if not row:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="反馈不存在",
+            )
+        if row.user_id != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="无权访问该反馈",
+            )
+
+        return FeedbackItem(
+            id=row.id,
+            create_time=_fmt_std(row.created_at),
+            update_time=_fmt_std(row.updated_at) if row.updated_at else _fmt_std(row.created_at),
+            user_id=row.user_id,
+            contact=row.contact,
+            type=row.type,
+            content=row.content,
+            images=parse_images(row.images),
+            status=row.status or 0,
+            handler_id=row.handler_id,
+            remark=row.remark,
         )
