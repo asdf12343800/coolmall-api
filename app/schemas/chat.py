@@ -1,5 +1,6 @@
-from typing import Optional, List
+from typing import Optional, List, Literal
 from pydantic import BaseModel, Field
+from app.schemas.address import Pagination
 
 
 class ChatMessageContent(BaseModel):
@@ -35,3 +36,16 @@ class ChatSessionResponse(BaseModel):
 
 class MsgReadRequest(BaseModel):
     msg_ids: List[int] = Field(..., alias="msgIds", description="消息ID数组")
+
+
+class MsgPageRequest(BaseModel):
+    session_id: int = Field(..., alias="sessionId", description="会话ID")
+    order: str = Field(default="createTime", description="排序字段: createTime/updateTime")
+    sort: Literal["asc", "desc"] = Field(default="desc", description="排序方向")
+    page: int = Field(default=1, description="页码", ge=1)
+    size: int = Field(default=20, description="每页条数", ge=1)
+
+
+class MsgPageData(BaseModel):
+    list: List[ChatMessageItem]
+    pagination: Pagination

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Header
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from app.schemas.chat import ChatSessionResponse, MsgReadRequest
+from app.schemas.chat import ChatSessionResponse, MsgReadRequest, MsgPageRequest, MsgPageData
 from app.schemas.user import ApiResponse
 from app.services.chat_service import ChatService
 
@@ -40,3 +40,15 @@ def read_messages(
     service = ChatService(db)
     data = service.read_messages(req, authorization)
     return ApiResponse[bool](data=data)
+
+
+@router.post("/msg/page", response_model=ApiResponse[MsgPageData])
+def page_messages(
+    req: MsgPageRequest,
+    authorization: str = Header(...),
+    db: Session = Depends(get_db),
+):
+    """分页查询消息"""
+    service = ChatService(db)
+    data = service.page_messages(req, authorization)
+    return ApiResponse[MsgPageData](data=data)
