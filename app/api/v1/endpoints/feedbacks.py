@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Header
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from app.schemas.feedback import FeedbackSubmitRequest
+from app.schemas.feedback import FeedbackSubmitRequest, FeedbackPageRequest, FeedbackPageData
 from app.schemas.user import ApiResponse
 from app.services.feedback_service import FeedbackService
 
@@ -18,3 +18,15 @@ def submit_feedback(
     service = FeedbackService(db)
     data = service.submit_feedback(req, authorization)
     return ApiResponse[bool](data=data)
+
+
+@router.post("/page", response_model=ApiResponse[FeedbackPageData])
+def page_feedback(
+    req: FeedbackPageRequest,
+    authorization: str = Header(...),
+    db: Session = Depends(get_db),
+):
+    """分页查询反馈"""
+    service = FeedbackService(db)
+    data = service.page_feedback(req, authorization)
+    return ApiResponse[FeedbackPageData](data=data)
