@@ -2,12 +2,13 @@ import json
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from app.models.goods_info import Goods
-from app.models.coupon import Coupon
+from app.models.coupon import Coupon, CouponUser
 from app.models.comment import Comment
 from app.models.user import User
+from app.models.address import Address
 from app.schemas.goods import GoodsItem, CommentItem
 from app.schemas.coupon import CouponInfoItem, CouponCondition
-from app.schemas.page import GoodsDetailPageData
+from app.schemas.page import GoodsDetailPageData, ConfirmOrderPageData, UserCouponItem, DefaultAddress
 from app.services.user_service import UserService
 
 
@@ -126,4 +127,91 @@ class PageService:
             goods_info=goods_info,
             coupon=coupon_list,
             comment=comment_list,
+        )
+
+    def get_confirm_order(self, authorization: str) -> ConfirmOrderPageData:
+        """获取确认订单页面数据"""
+        user_service = UserService(self.db)
+        user_id = user_service._get_user_id_from_token(authorization)
+
+        user_coupon_rows = (
+            self.db.query(CouponUser, Coupon)
+            .outerjoin(Coupon, CouponUser.coupon_id == Coupon.id)
+            .filter(CouponUser.user_id == user_id)
+            .order_by(CouponUser.created_at.desc())
+            .all()
+        )
+        user_coupon_list = []
+        for cu, c in user_coupon_rows:
+            if not c:
+                continue
+            user_coupon_list.append(
+                UserCouponItem(
+                    id=cu.id,
+                    create_time=_fmt_std(cu.created_at),
+                    update_time=(_fmt_std(cu.updated_at) if cu.updated_at else (_fmt_std(cu.created_at) or "")),
+                    title=c.title,
+                    description="全场可用",
+                    type=c.type,
+                    amount=float(c.discount_value),
+                    num=c.stock,
+                    received_num=c.received,
+                    start_time=_fmt_std(c.start_time) or "",
+                    end_time=_fmt_std(c.end_time) or "",
+                    status=c.status,
+                    condition=CouponCondition(full_amount=float(c.threshold)),
+                    use_status=cu.status,
+                )
+            )
+
+        available_coupons = (
+            self.db.query(Coupon)
+            .filter(Coupon.status == 1)
+            .order_by(Coupon.id.asc())
+            .all()
+        )
+        coupon_list = [
+            CouponInfoItem(
+                id=c.id,
+                title=c.title,
+                description="全场可用",
+                type=c.type,
+                amount=float(c.discount_value),
+                num=c.stock,
+                received_num=c.received,
+                start_time=_fmt_std(c.start_time) or "",
+                end_time=_fmt_std(c.end_time) or "",
+                status=c.status,
+                create_time=_fmt_std(c.created_at) or "",
+                update_time=(_fmt_std(c.updated_at) if c.updated_at else (_fmt_std(c.created_at) or "")),
+                condition=CouponCondition(full_amount=float(c.threshold)),
+            )
+            for c in available_coupons
+        ]
+
+        default_addr = (
+            self.db.query(Address)
+            .filter(Address.user_id == user_id, Address.is_default == True)
+            .first()
+        )
+        default_address = None
+        if default_addr:
+            default_address = DefaultAddress(
+                id=default_addr.id,
+                create_time=_fmt_std(default_addr.created_at),
+                update_time=_fmt_std(default_addr.updated_at) if default_addr.updated_at else _fmt_std(default_addr.created_at),
+                user_id=default_addr.user_id,
+                contact=default_addr.contact,
+                phone=default_addr.phone,
+                province=default_addr.province,
+                city=default_addr.city,
+                district=default_addr.district,
+                address=default_addr.address,
+                is_default=bool(default_addr.is_default),
+            )
+
+        return ConfirmOrderPageData(
+            user_coupon=user_coupon_list,
+            coupon=coupon_list,
+            default_address=default_address,
         )
