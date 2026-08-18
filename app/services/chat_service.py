@@ -1,6 +1,7 @@
 import json
 from typing import Optional
 from fastapi import HTTPException, status
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from app.models.chat import ChatSession, ChatMessage
 from app.models.user import User
@@ -200,4 +201,19 @@ class ChatService:
         return MsgPageData(
             list=items,
             pagination=Pagination(total=total, size=req.size, page=req.page),
+        )
+
+    def get_unread_count(self, authorization: str) -> int:
+        """获取当前用户未读的客服消息数（type=1 且 status 非 1）"""
+        user_service = UserService(self.db)
+        user_id = user_service._get_user_id_from_token(authorization)
+
+        return (
+            self.db.query(ChatMessage)
+            .filter(
+                ChatMessage.user_id == user_id,
+                ChatMessage.type == 1,
+                or_(ChatMessage.status == 0, ChatMessage.status.is_(None)),
+            )
+            .count()
         )

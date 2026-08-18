@@ -52,3 +52,14 @@ def page_messages(
     service = ChatService(db)
     data = service.page_messages(req, authorization)
     return ApiResponse[MsgPageData](data=data)
+
+
+@router.get("/msg/unreadCount", response_model=ApiResponse[int])
+def get_unread_count(
+    authorization: str = Header(...),
+    db: Session = Depends(get_db),
+):
+    """未读消息数"""
+    service = ChatService(db)
+    data = service.get_unread_count(authorization)
+    return ApiResponse[int](data=data)
