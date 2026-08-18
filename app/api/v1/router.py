@@ -56,3 +56,9 @@ api_router.include_router(
     prefix="/app/goods",
     tags=["goods"]
 )
+
+api_router.include_router(
+    dicts.router,
+    prefix="/app/dict/info",
+    tags=["dicts"]
+)
