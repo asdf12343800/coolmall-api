@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Depends, Header
+from fastapi import APIRouter, Depends, Header, Query
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from app.schemas.complain import ComplainSubmitRequest, ComplainPageRequest, ComplainPageData
+from app.schemas.complain import ComplainSubmitRequest, ComplainPageRequest, ComplainPageData, ComplainItem
 from app.schemas.user import ApiResponse
 from app.services.complain_service import ComplainService
 
@@ -30,3 +30,15 @@ def page_complain(
     service = ComplainService(db)
     data = service.page_complain(req, authorization)
     return ApiResponse[ComplainPageData](data=data)
+
+
+@router.get("/info", response_model=ApiResponse[ComplainItem])
+def get_complain_info(
+    id: int = Query(..., description="投诉举报ID"),
+    authorization: str = Header(...),
+    db: Session = Depends(get_db),
+):
+    """根据ID查询单个投诉举报"""
+    service = ComplainService(db)
+    data = service.get_complain_info(id, authorization)
+    return ApiResponse[ComplainItem](data=data)
