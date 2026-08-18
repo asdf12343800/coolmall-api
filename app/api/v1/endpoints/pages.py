@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Header, Query
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from app.schemas.page import GoodsDetailPageData, ConfirmOrderPageData
+from app.schemas.page import GoodsDetailPageData, ConfirmOrderPageData, HomePageData
 from app.schemas.user import ApiResponse
 from app.services.page_service import PageService
 
@@ -29,3 +29,14 @@ def get_confirm_order(
     service = PageService(db)
     data = service.get_confirm_order(authorization)
     return ApiResponse[ConfirmOrderPageData](data=data)
+
+
+@router.get("/home", response_model=ApiResponse[HomePageData])
+def get_home(
+    authorization: str = Header(...),
+    db: Session = Depends(get_db),
+):
+    """获取首页数据"""
+    service = PageService(db)
+    data = service.get_home(authorization)
+    return ApiResponse[HomePageData](data=data)
