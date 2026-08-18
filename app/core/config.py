@@ -45,6 +45,17 @@ class Settings(BaseSettings):
     # 商品描述/标题
     ALIPAY_SUBJECT: str = os.getenv("ALIPAY_SUBJECT", "商品采购")
 
+    # 腾讯云 COS 配置
+    TENCENT_COS_SECRET_ID: str = os.getenv("TENCENT_COS_SECRET_ID", "")
+    TENCENT_COS_SECRET_KEY: str = os.getenv("TENCENT_COS_SECRET_KEY", "")
+    TENCENT_COS_REGION: str = os.getenv("TENCENT_COS_REGION", "ap-guangzhou")
+    TENCENT_COS_BUCKET: str = os.getenv("TENCENT_COS_BUCKET", "")
+    TENCENT_COS_APPID: str = os.getenv("TENCENT_COS_APPID", "")
+    # STS 策略 JSON（可选，控制临时凭证权限范围）
+    TENCENT_COS_STS_POLICY: str = os.getenv("TENCENT_COS_STS_POLICY", "")
+    # 临时凭证有效期（秒）
+    TENCENT_COS_STS_DURATION: int = int(os.getenv("TENCENT_COS_STS_DURATION", "1800"))
+
     class Config:
         case_sensitive = True
         env_file = ".env"

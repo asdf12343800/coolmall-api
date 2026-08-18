@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import users, addresses, payments, orders, coupons, coupon_infos, banners, categories, goods, dicts, chats
+from app.api.v1.endpoints import users, addresses, payments, orders, coupons, coupon_infos, banners, categories, goods, dicts, chats, uploads
 
 api_router = APIRouter()
 
@@ -67,4 +67,10 @@ api_router.include_router(
     chats.router,
     prefix="/app/cs",
     tags=["chats"]
+)
+
+api_router.include_router(
+    uploads.router,
+    prefix="/app/base/comm",
+    tags=["uploads"]
 )
