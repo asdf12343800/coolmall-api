@@ -3,7 +3,7 @@ from typing import List
 from fastapi import APIRouter, Depends, Header
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from app.schemas.goods import GoodsSpecListRequest, GoodsSpecItem, SearchKeywordItem
+from app.schemas.goods import GoodsSpecListRequest, GoodsSpecItem, SearchKeywordItem, GoodsPageRequest, GoodsItem, GoodsPageData
 from app.schemas.user import ApiResponse
 from app.services.goods_service import GoodsService
 
@@ -31,3 +31,15 @@ def list_search_keywords(
     service = GoodsService(db)
     data = service.list_keywords(authorization)
     return ApiResponse[List[SearchKeywordItem]](data=data)
+
+
+@router.post("/info/page", response_model=ApiResponse[GoodsPageData])
+def page_goods(
+    req: GoodsPageRequest,
+    authorization: str = Header(...),
+    db: Session = Depends(get_db),
+):
+    """分页查询商品"""
+    service = GoodsService(db)
+    data = service.page_goods(req, authorization)
+    return ApiResponse[GoodsPageData](data=data)
