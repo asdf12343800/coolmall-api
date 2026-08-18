@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, Header
+from fastapi import APIRouter, Depends, Header, Query
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.schemas.upload import UploadData
 from app.schemas.user import ApiResponse
 from app.services.upload_service import UploadService
+from app.services.param_service import ParamService
 
 router = APIRouter()
 
@@ -17,3 +18,15 @@ def get_upload_url(
     service = UploadService(db)
     data = service.get_upload_credentials(authorization)
     return ApiResponse[UploadData](data=data)
+
+
+@router.get("/param", response_model=ApiResponse[str])
+def get_param(
+    key: str = Query(..., description="参数key，如 privacyPolicy"),
+    authorization: str = Header(...),
+    db: Session = Depends(get_db),
+):
+    """参数配置"""
+    service = ParamService(db)
+    data = service.get_param(key, authorization)
+    return ApiResponse[str](data=data)
