@@ -1,4 +1,5 @@
 import json
+from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from app.models.goods import GoodsSpec
 from app.models.goods_info import Goods
@@ -119,4 +120,35 @@ class GoodsService:
         return GoodsPageData(
             list=items,
             pagination=Pagination(total=total, size=req.size, page=req.page),
+        )
+
+    def get_goods(self, goods_id: int, authorization: str) -> GoodsItem:
+        """根据ID查询单个商品"""
+        user_service = UserService(self.db)
+        user_service._get_user_id_from_token(authorization)  # 校验 token
+
+        g = self.db.query(Goods).filter(Goods.id == goods_id).first()
+        if not g:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="商品不存在"
+            )
+        return GoodsItem(
+            id=g.id,
+            create_time=_fmt_std(g.created_at),
+            update_time=_fmt_std(g.updated_at) if g.updated_at else _fmt_std(g.created_at),
+            type_id=g.type_id,
+            title=g.title,
+            sub_title=g.sub_title,
+            main_pic=g.main_pic,
+            pics=_parse_images(g.pics),
+            price=float(g.price),
+            sold=g.sold,
+            content=g.content,
+            content_pics=_parse_images(g.content_pics),
+            recommend=g.recommend,
+            featured=g.featured,
+            status=g.status,
+            sort_num=g.sort_num,
+            specs=None,
         )

@@ -1,6 +1,6 @@
 from typing import List
 
-from fastapi import APIRouter, Depends, Header
+from fastapi import APIRouter, Depends, Header, Query
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.schemas.goods import GoodsSpecListRequest, GoodsSpecItem, SearchKeywordItem, GoodsPageRequest, GoodsItem, GoodsPageData
@@ -43,3 +43,15 @@ def page_goods(
     service = GoodsService(db)
     data = service.page_goods(req, authorization)
     return ApiResponse[GoodsPageData](data=data)
+
+
+@router.get("/info/info", response_model=ApiResponse[GoodsItem])
+def get_goods(
+    id: int = Query(..., description="商品ID"),
+    authorization: str = Header(...),
+    db: Session = Depends(get_db),
+):
+    """根据ID查询单个商品"""
+    service = GoodsService(db)
+    data = service.get_goods(id, authorization)
+    return ApiResponse[GoodsItem](data=data)
